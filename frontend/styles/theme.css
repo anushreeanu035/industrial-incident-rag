@@ -1,0 +1,120 @@
+/* Industrial Incident Investigator - Design System */
+
+:root {
+    --primary-navy: #0f1e36;
+    --navy-surface: #172a45;
+    --navy-light: #23395d;
+    --accent-blue: #1e88e5;
+    --accent-teal: #00897b;
+    --text-primary: #1e293b;
+    --text-muted: #64748b;
+    --bg-light: #f8fafc;
+    --border-color: #e2e8f0;
+    --warning-amber: #d97706;
+    --danger-red: #dc2626;
+    --success-green: #16a34a;
+}
+
+/* Global Container Tweaks */
+.main .block-container {
+    padding-top: 2rem;
+    padding-bottom: 3rem;
+    max-width: 1280px;
+}
+
+/* Header Banner */
+.incident-header-banner {
+    background: linear-gradient(135deg, #0f1e36 0%, #1e3a5f 100%);
+    color: #ffffff;
+    padding: 1.5rem 2rem;
+    border-radius: 10px;
+    margin-bottom: 1.5rem;
+    border-left: 6px solid #1e88e5;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.incident-header-banner h1 {
+    color: #ffffff !important;
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 0 0 0.4rem 0;
+}
+
+.incident-header-banner p {
+    color: #cbd5e1 !important;
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+/* Industrial Metric Card */
+.industrial-card {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.industrial-card:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+}
+
+/* Confidence Badges */
+.badge-fact {
+    background-color: #dcfce7;
+    color: #15803d;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    border: 1px solid #bbf7d0;
+    display: inline-block;
+}
+
+.badge-hypothesis {
+    background-color: #fef3c7;
+    color: #b45309;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    border: 1px solid #fde68a;
+    display: inline-block;
+}
+
+.badge-warning {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    border: 1px solid #fecaca;
+    display: inline-block;
+}
+
+/* Citation Chip */
+.citation-chip {
+    background-color: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    display: inline-block;
+    margin-right: 0.25rem;
+}
+
+/* Stage Result Card in Explorer */
+.stage-card {
+    background-color: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-left: 4px solid #0f1e36;
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+}

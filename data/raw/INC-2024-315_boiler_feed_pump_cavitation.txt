@@ -1,0 +1,33 @@
+INCIDENT INVESTIGATION REPORT: INC-2024-315
+Machine ID: BFP-02
+Incident Type: Hydraulic Cavitation & Impeller Degradation
+Facility: Central Steam Utility Plant, Boiler 4 Feed Water Circuit
+Incident Date: 2024-08-30
+Severity Level: Tier 2 Equipment Damage
+Lead Investigator: Maintenance Engineer Carlos Rivera
+
+1. OVERVIEW
+On August 30, 2024, during high-load boiler operation (320 tonnes/hour steam output), the secondary boiler feed pump BFP-02 began emitting severe acoustic noise resembling gravel rattling inside the pump casing (measured at 118 dBA at 1 meter distance). Pump discharge pressure fluctuated erratically between 82 bar and 98 bar (target 105 bar), accompanied by axial vibration rising to 8.6 mm/s on the thrust bearing housing. The pump was manually tripped by the control room operator at 16:45 to prevent shaft seizure.
+
+2. TIMELINE OF EVENTS
+- 15:30: Boiler steam load increased from 240 t/h to 320 t/h.
+- 16:10: Deaerator storage tank level reading LT-501 showed 68% (normal operational range: 60% to 75%).
+- 16:25: Feed pump BFP-02 suction pressure transmitter PT-202 dropped to 1.4 bar (design minimum 3.2 bar).
+- 16:38: Acoustic rattling intensified; motor driver active power oscillated wildly.
+- 16:45: Operator manual shutdown initiated. Standby pump BFP-01 started successfully.
+
+3. PHYSICAL INSPECTION AND FAILURE ANALYSIS
+- Suction Impeller Damage: Internal borescopic inspection and subsequent pump casing teardown revealed catastrophic pitting erosion on the suction vane inlets of the 1st stage impeller. Spongy, honeycomb-like material loss up to 6 mm depth was observed along the low-pressure suction side of all six vanes.
+- Hydraulic Cavitation: The physical damage pattern is classic micro-jet erosion from vapor bubble collapse under Net Positive Suction Head (NPSH) starvation.
+- Instrument Discrepancy: Independent manual sight-glass check of the deaerator storage tank revealed that the actual physical water level was at only 18% of tank height, despite electronic transmitter LT-501 indicating 68%.
+- Calibration Offset Cause: Differential pressure transmitter LT-501 uses a wet reference leg. Inspection revealed that the condensing chamber pot had accumulated sediment, causing the reference leg water column to partially boil away during the load swing, creating a false 350 mm high reading offset.
+
+4. ROOT CAUSE SUMMARY
+- Direct Cause: Hydraulic cavitation due to available Net Positive Suction Head (NPSHa) falling to 2.1 meters, well below pump required NPSHr of 3.8 meters.
+- Root Cause: False high level measurement on deaerator transmitter LT-501 misled the automatic boiler makeup control loop, allowing deaerator inventory to deplete to near empty without triggering the low-level trip.
+
+5. ACTION ITEMS AND RECOMMENDATIONS
+1. Replace damaged 1st-stage impeller with CA6NM martensitic stainless steel impeller featuring cavitation-resistant nickel-chromium coating.
+2. Replace single differential-pressure transmitter LT-501 with a dual-redundant guided wave radar (GWR) level transmitter system LT-502A/B.
+3. Implement 2oo3 voting logic across two radar transmitters and one wet-leg transmitter for low-level boiler feed pump trip protection.
+4. Update standard operating procedures (SOP-BFP-04) to require manual gauge glass verification once per shift.

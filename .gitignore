@@ -1,0 +1,29 @@
+# Environment Variables
+.env
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Local Data and Stores (preserve raw templates, ignore local runtime databases)
+data/processed/qdrant_db/
+data/processed/bm25_index.pkl
+data/processed/documents.json
+
+# Reports and logs
+reports/*.csv
+reports/*.json
+!reports/benchmark_baseline.json
+!reports/benchmark_advanced.json
+*.log
+
+# Streamlit
+.streamlit/secrets.toml

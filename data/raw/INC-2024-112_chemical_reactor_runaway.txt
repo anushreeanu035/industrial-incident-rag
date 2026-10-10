@@ -1,0 +1,33 @@
+INCIDENT INVESTIGATION REPORT: INC-2024-112
+Machine ID: RX-404
+Incident Type: Thermal Runaway & Exothermic Excursion
+Facility: Specialty Polymers Plant, Bay 4
+Incident Date: 2024-04-22
+Severity Level: Tier 1 Major Process Safety Incident
+Lead Investigator: Dr. Elena Rostova, Process Safety Specialist
+
+1. INCIDENT DESCRIPTION
+On April 22, 2024, at 14:15 local time, batch polymerization reactor RX-404 experienced an uncontrolled exothermic temperature excursion during the methyl methacrylate polymerization cycle. Reactor internal temperature surged from the normal holding setpoint of 85 deg C to 162 deg C in under 14 minutes. Vessel pressure escalated rapidly to 18.5 bar gauge, resulting in rupture of safety burst disk PRD-12 and emergency venting of vaporized hydrocarbons to the emergency flare header. The thermal oxidizer flare successfully incinerated the released vapors without environmental discharge or injuries.
+
+2. INVESTIGATION CHRONOLOGY
+- 13:58: Monomer and initiator charge completed into vessel RX-404. Agitator AG-404 operating at 120 RPM.
+- 14:05: Exothermic reaction commenced; temperature rose to 89 deg C. Cooling demand signal reached 100%.
+- 14:09: Temperature reached 115 deg C. Chilled water supply valve TCV-404 indicated 100% open on DCS graphics, but actual jacket coolant flowmeter FIT-404 measured only 12% flow.
+- 14:12: High-high temperature interlock triggered at 130 deg C, commanding emergency inhibitor quench pump QP-02 to inject hydroquinone solution.
+- 14:13: Inhibitor pump QP-02 failed to energize.
+- 14:15: Pressure peaked at 18.5 bar; burst disk PRD-12 ruptured cleanly at design pressure.
+
+3. PHYSICAL EVIDENCE AND CAUSAL MECHANISMS
+- Valve Inspection: Physical inspection of chilled water modulating valve TCV-404 showed the valve stem physically stuck at 12% stroke. Disassembly of the pneumatic actuator showed a 40 mm longitudinal tear in the rubber diaphragm, preventing instrument air pressure from overcoming the return spring.
+- Feedback Discrepancy: The DCS position indicator was derived from controller output signal rather than an actual valve stem position transmitter (LVDT), causing operators to believe the valve was fully open.
+- Safety Interlock Bypass: The chemical inhibitor injection pump QP-02 did not start because local physical bypass key switch SW-8 was found in the "MANUAL TEST" position. Maintenance logs show switch SW-8 was positioned in manual during annual turnaround proof-testing 10 days prior and was never returned to "AUTO ARMED".
+
+4. ROOT CAUSE SUMMARY
+- Primary Root Cause: Mechanical failure of pneumatic valve actuator diaphragm on TCV-404 prevented chilled water cooling flow during the exothermic peak.
+- Critical Secondary Cause: Human error and management of change (MOC) breakdown; safety bypass switch SW-8 was left in manual bypass, disabling automated emergency chemical quench.
+
+5. MANDATORY CORRECTIVE ACTIONS
+1. Replace actuator on valve TCV-404 with high-reliability dual-opposed piston actuator with stainless steel springs.
+2. Install digital valve stem positioners with true mechanical feedback (4-20mA Hall-effect LVDT) on all reactor cooling valves.
+3. Retrofit bypass switch SW-8 with tamper-evident key supervision and automated software alarm interlock preventing monomer charge if SW-8 is not in "AUTO ARMED".
+4. Revise turnaround pre-startup safety review (PSSR) checklist to include independent two-person verification of all safety instrumented system (SIS) field switches.

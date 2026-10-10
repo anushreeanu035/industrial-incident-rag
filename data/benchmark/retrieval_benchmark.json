@@ -1,0 +1,140 @@
+{
+  "version": "1.0.0",
+  "dataset_name": "industrial_incident_benchmark_v1",
+  "description": "Deterministic benchmark dataset for Industrial Incident Investigator retrieval and RAG evaluation",
+  "test_cases": [
+    {
+      "query_id": "Q-01",
+      "query": "What caused the high vibration and babbitt wiping on steam turbine HP-17?",
+      "target_filename": "INC-2024-089_turbine_bearing_failure.md",
+      "machine_id": "HP-17",
+      "incident_type": "Mechanical Vibration & Bearing Failure",
+      "key_identifiers": ["HP-17", "B-101", "V-204", "E-201", "babbitt"],
+      "reference_answer": "The vibration and babbitt wiping on turbine HP-17 bearing B-101 was caused by seal degradation in oil cooler E-201 allowing cooling water and glycol to contaminate the lubrication circuit. This accelerated sludge accumulation and particulate blockage of orifice valve V-204, starving the bearing pad of oil and causing hydrodynamic lubrication collapse.",
+      "ground_truth_passages": [
+        "Seal degradation in oil cooler E-201 allowed cooling water and glycol to contaminate the turbine lubrication circuit.",
+        "particulate blockage of orifice valve V-204. Starved of pressurized oil film, hydrodynamic lubrication collapsed, causing babbitt wiping"
+      ]
+    },
+    {
+      "query_id": "Q-02",
+      "query": "Why did the emergency inhibitor quench pump QP-02 fail to start on reactor RX-404?",
+      "target_filename": "INC-2024-112_chemical_reactor_runaway.txt",
+      "machine_id": "RX-404",
+      "incident_type": "Thermal Runaway & Exothermic Excursion",
+      "key_identifiers": ["RX-404", "QP-02", "SW-8", "PRD-12", "hydroquinone"],
+      "reference_answer": "Inhibitor quench pump QP-02 failed to energize because local physical bypass key switch SW-8 was inadvertently left in the MANUAL TEST position following annual turnaround proof-testing 10 days prior, which disabled the automated emergency chemical quench.",
+      "ground_truth_passages": [
+        "The chemical inhibitor injection pump QP-02 did not start because local physical bypass key switch SW-8 was found in the 'MANUAL TEST' position.",
+        "Maintenance logs show switch SW-8 was positioned in manual during annual turnaround proof-testing 10 days prior and was never returned to 'AUTO ARMED'."
+      ]
+    },
+    {
+      "query_id": "Q-03",
+      "query": "What protection relay code tripped conveyor motor M-301 and what was the maximum recorded temperature?",
+      "target_filename": "INC-2023-044_conveyor_motor_overheating.md",
+      "machine_id": "M-301",
+      "incident_type": "Electrical Motor Thermal Overload",
+      "key_identifiers": ["M-301", "E-301", "ETD-1", "148°C", "Class F"],
+      "reference_answer": "Conveyor motor M-301 tripped on protection code E-301 (Motor Thermal Overload), and the stator winding Embedded Temperature Detectors registered a maximum temperature of 148°C, approaching the Class F insulation limit of 155°C.",
+      "ground_truth_passages": [
+        "tripped unexpectedly on protection code E-301 (Motor Thermal Overload).",
+        "Stator winding Embedded Temperature Detectors (ETD-1 through ETD-6) registered a maximum temperature of 148°C"
+      ]
+    },
+    {
+      "query_id": "Q-04",
+      "query": "How did moisture freeze-up in air dryer D-10 lead to compressor K-102 surge shutdown?",
+      "target_filename": "INC-2024-201_compressor_surge_shutdown.md",
+      "machine_id": "K-102",
+      "incident_type": "Aerodynamic Compressor Surge & Tripping",
+      "key_identifiers": ["K-102", "D-10", "FV-102", "SOV-102", "SV-4"],
+      "reference_answer": "Desiccant air dryer D-10 experienced switching valve SV-4 failure, sending saturated unconditioned air into instrument lines. During an ambient temperature drop, water condensed and froze in pilot solenoid valve SOV-102, slamming suction bypass valve FV-102 shut, which starved compressor K-102 of mass flow and triggered aerodynamic surge.",
+      "ground_truth_passages": [
+        "Failure of desiccant air dryer D-10 switching valve SV-4 allowed high dew-point air into outdoor instrument tubing, causing icing and pneumatic solenoid failure",
+        "Suction header bypass valve FV-102 slammed shut without modulation command from the DCS"
+      ]
+    },
+    {
+      "query_id": "Q-05",
+      "query": "What caused false level readings on deaerator transmitter LT-501 leading to BFP-02 pump cavitation?",
+      "target_filename": "INC-2024-315_boiler_feed_pump_cavitation.txt",
+      "machine_id": "BFP-02",
+      "incident_type": "Hydraulic Cavitation & Impeller Degradation",
+      "key_identifiers": ["BFP-02", "LT-501", "NPSHa", "wet leg", "condensate"],
+      "reference_answer": "Deaerator level transmitter LT-501 accumulated sediment in its condensing pot, causing the wet reference leg water column to partially boil away during a load swing. This produced a false 350 mm high reading offset (showing 68% when actual level was 18%), depleting deaerator inventory and dropping NPSHa to 2.1 m.",
+      "ground_truth_passages": [
+        "condensing chamber pot had accumulated sediment, causing the reference leg water column to partially boil away during the load swing, creating a false 350 mm high reading offset.",
+        "Hydraulic cavitation due to available Net Positive Suction Head (NPSHa) falling to 2.1 meters, well below pump required NPSHr of 3.8 meters."
+      ]
+    },
+    {
+      "query_id": "Q-06",
+      "query": "Which valve actuator diaphragm ruptured causing thermal runaway in vessel RX-404?",
+      "target_filename": "INC-2024-112_chemical_reactor_runaway.txt",
+      "machine_id": "RX-404",
+      "incident_type": "Thermal Runaway & Exothermic Excursion",
+      "key_identifiers": ["TCV-404", "RX-404", "diaphragm", "chilled water"],
+      "reference_answer": "The pneumatic actuator diaphragm on chilled water modulating valve TCV-404 suffered a 40 mm longitudinal tear, jamming the valve stem at only 12% open position and starving reactor RX-404 of jacket cooling during the exothermic peak.",
+      "ground_truth_passages": [
+        "Physical inspection of chilled water modulating valve TCV-404 showed the valve stem physically stuck at 12% stroke.",
+        "Disassembly of the pneumatic actuator showed a 40 mm longitudinal tear in the rubber diaphragm"
+      ]
+    },
+    {
+      "query_id": "Q-07",
+      "query": "What were the oil contamination lab findings for turbine bearing B-101 in report INC-2024-089?",
+      "target_filename": "INC-2024-089_turbine_bearing_failure.md",
+      "machine_id": "HP-17",
+      "incident_type": "Mechanical Vibration & Bearing Failure",
+      "key_identifiers": ["B-101", "HP-17", "850 ppm", "ethylene glycol", "LO-89"],
+      "reference_answer": "Laboratory oil analysis of sample LO-89 showed 850 ppm moisture contamination along with ethylene glycol traces, copper-lead babbitt metal flakes in the oil return pocket, and carbonized sludge occluding orifice valve V-204.",
+      "ground_truth_passages": [
+        "Laboratory oil analysis of sample LO-89 indicated 850 ppm moisture contamination and ethylene glycol traces.",
+        "Babbitt metal flakes accumulated in the oil return pocket.",
+        "Orifice control valve V-204 internal metering port was 80% occluded by carbonized sludge and particulate debris."
+      ]
+    },
+    {
+      "query_id": "Q-08",
+      "query": "What was the failure mechanism on Bushing B-Phase that caused transformer TR-200 arc flash?",
+      "target_filename": "INC-2024-500_transformer_explosion_safety_bulletin.pdf",
+      "machine_id": "TR-200",
+      "incident_type": "Electrical Transformer Arc Flash & Explosion",
+      "key_identifiers": ["TR-200", "B-Phase", "capacitance tap", "nitrile gasket", "Buchholz"],
+      "reference_answer": "Moisture penetrated through a degraded and cracked nitrile gasket on the top bushing capacitance tap cap of Bushing B-Phase. This caused dielectric breakdown of the paper-oil insulation barrier and ignited an internal phase-to-ground arc flash.",
+      "ground_truth_passages": [
+        "Moisture penetration through a degraded capacitance tap gasket on Bushing B-Phase resulted in dielectric breakdown, initiating an intense phase-to-ground internal arc flash.",
+        "High-voltage Bushing B-Phase had severe electrical tracking across its lower oil-immersed porcelain skirt."
+      ]
+    },
+    {
+      "query_id": "Q-09",
+      "query": "What corrective actions were mandated for yard stacker conveyor drive motor M-301?",
+      "target_filename": "INC-2023-044_conveyor_motor_overheating.md",
+      "machine_id": "M-301",
+      "incident_type": "Electrical Motor Thermal Overload",
+      "key_identifiers": ["M-301", "Kluberplex", "dry-ice", "PM-E-301", "VM-301"],
+      "reference_answer": "Corrective actions for motor M-301 included dry-ice blast cleaning of motor cooling ribs, replacing drive-end bearing B-301 with Kluberplex BEM 41-132 synthetic polyurea grease, revising PM schedule PM-E-301 to mandate bi-weekly air washdowns, and installing a wireless vibration and surface temperature telemetry pod VM-301.",
+      "ground_truth_passages": [
+        "Performed thorough dry-ice blast cleaning of motor cooling ribs, fan cowl, and intake cowlings.",
+        "Replaced drive-end bearing B-301 and flushed housing with high-temperature polyurea synthetic grease (Kluberplex BEM 41-132).",
+        "Revised mechanical PM schedule PM-E-301 to mandate bi-weekly pressurized air washdown of exterior motor fins.",
+        "Installed wireless continuous tri-axial vibration and surface temperature telemetry pod"
+      ]
+    },
+    {
+      "query_id": "Q-10",
+      "query": "What was the NPSHa versus NPSHr discrepancy that damaged boiler feed pump BFP-02?",
+      "target_filename": "INC-2024-315_boiler_feed_pump_cavitation.txt",
+      "machine_id": "BFP-02",
+      "incident_type": "Hydraulic Cavitation & Impeller Degradation",
+      "key_identifiers": ["BFP-02", "NPSHa", "NPSHr", "2.1 meters", "3.8 meters"],
+      "reference_answer": "Net Positive Suction Head available (NPSHa) dropped to 2.1 meters, falling significantly below the pump's required NPSHr of 3.8 meters, inducing severe micro-jet vapor bubble collapse and pitting the 1st stage impeller vanes up to 6 mm depth.",
+      "ground_truth_passages": [
+        "Hydraulic cavitation due to available Net Positive Suction Head (NPSHa) falling to 2.1 meters, well below pump required NPSHr of 3.8 meters.",
+        "catastrophic pitting erosion on the suction vane inlets of the 1st stage impeller."
+      ]
+    }
+  ]
+}
