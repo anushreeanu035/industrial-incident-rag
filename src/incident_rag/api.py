@@ -144,6 +144,11 @@ async def upload_document(
     # Max 25 MB limit
     MAX_FILE_SIZE = 25 * 1024 * 1024
     content = await file.read()
+    if len(content) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Uploaded file '{file.filename}' is empty.",
+        )
     if len(content) > MAX_FILE_SIZE:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,

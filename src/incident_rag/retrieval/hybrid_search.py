@@ -25,6 +25,7 @@ class HybridSearchEngine:
         top_k: int = 10,
         machine_id_filter: Optional[str] = None,
         incident_type_filter: Optional[str] = None,
+        document_id_filter: Optional[str] = None,
         rrf_k: Optional[int] = None,
         dense_top_k: Optional[int] = None,
         bm25_top_k: Optional[int] = None,
@@ -40,6 +41,7 @@ class HybridSearchEngine:
             top_k=d_top,
             machine_id_filter=machine_id_filter,
             incident_type_filter=incident_type_filter,
+            document_id_filter=document_id_filter,
         )
 
         bm25_results = self.bm25_engine.search(
@@ -47,6 +49,7 @@ class HybridSearchEngine:
             top_k=b_top,
             machine_id_filter=machine_id_filter,
             incident_type_filter=incident_type_filter,
+            document_id_filter=document_id_filter,
         )
 
         # Fuse rankings using RRF

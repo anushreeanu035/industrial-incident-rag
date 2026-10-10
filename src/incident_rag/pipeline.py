@@ -58,6 +58,7 @@ class IncidentRAGPipeline:
         strategy = request.strategy
         machine_filter = request.machine_id_filter
         incident_filter = request.incident_type_filter
+        doc_filter = request.document_id_filter
 
         stage_results = RetrievalStageResults()
         rewritten_queries: List[str] = []
@@ -69,6 +70,7 @@ class IncidentRAGPipeline:
                 top_k=top_k,
                 machine_id_filter=machine_filter,
                 incident_type_filter=incident_filter,
+                document_id_filter=doc_filter,
             )
             stage_results.dense_results = dense_res
             final_results = dense_res
@@ -79,6 +81,7 @@ class IncidentRAGPipeline:
                 top_k=top_k,
                 machine_id_filter=machine_filter,
                 incident_type_filter=incident_filter,
+                document_id_filter=doc_filter,
             )
             stage_results.bm25_results = bm25_res
             final_results = bm25_res
@@ -89,6 +92,7 @@ class IncidentRAGPipeline:
                 top_k=top_k,
                 machine_id_filter=machine_filter,
                 incident_type_filter=incident_filter,
+                document_id_filter=doc_filter,
             )
             stage_results = stages
             final_results = fused_res
@@ -101,6 +105,7 @@ class IncidentRAGPipeline:
                 top_k=candidate_k,
                 machine_id_filter=machine_filter,
                 incident_type_filter=incident_filter,
+                document_id_filter=doc_filter,
             )
             reranked_res, _ = self.reranker.rerank(query, fused_res, top_k=top_k)
             stage_results = stages
@@ -129,12 +134,14 @@ class IncidentRAGPipeline:
                     top_k=self.settings.DENSE_TOP_K,
                     machine_id_filter=machine_filter,
                     incident_type_filter=incident_filter,
+                    document_id_filter=doc_filter,
                 )
                 b_res = self.bm25_engine.search(
                     query=q,
                     top_k=self.settings.BM25_TOP_K,
                     machine_id_filter=machine_filter,
                     incident_type_filter=incident_filter,
+                    document_id_filter=doc_filter,
                 )
                 all_dense.extend(d_res)
                 all_bm25.extend(b_res)
@@ -174,6 +181,7 @@ class IncidentRAGPipeline:
             top_k=request.top_k,
             machine_id_filter=request.machine_id_filter,
             incident_type_filter=request.incident_type_filter,
+            document_id_filter=request.document_id_filter,
             enable_rewriting=request.enable_rewriting,
         )
         retrieval_resp = self.retrieve(retrieval_req)
@@ -185,6 +193,7 @@ class IncidentRAGPipeline:
             "rewritten_queries": retrieval_resp.rewritten_queries,
             "machine_id_filter": request.machine_id_filter,
             "incident_type_filter": request.incident_type_filter,
+            "document_id_filter": request.document_id_filter,
         }
 
         response = self.generator.generate(

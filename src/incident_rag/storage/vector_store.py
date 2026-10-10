@@ -88,6 +88,7 @@ class VectorStore:
         top_k: int = 10,
         machine_id_filter: Optional[str] = None,
         incident_type_filter: Optional[str] = None,
+        document_id_filter: Optional[str] = None,
     ) -> List[RetrievalResultItem]:
         """Performs dense vector similarity search with optional metadata filters."""
         filter_conditions = []
@@ -98,6 +99,10 @@ class VectorStore:
         if incident_type_filter:
             filter_conditions.append(
                 FieldCondition(key="incident_type", match=MatchValue(value=incident_type_filter))
+            )
+        if document_id_filter:
+            filter_conditions.append(
+                FieldCondition(key="document_id", match=MatchValue(value=document_id_filter))
             )
 
         query_filter = Filter(must=filter_conditions) if filter_conditions else None

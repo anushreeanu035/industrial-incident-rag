@@ -123,6 +123,7 @@ class BM25SearchEngine:
         top_k: int = 10,
         machine_id_filter: Optional[str] = None,
         incident_type_filter: Optional[str] = None,
+        document_id_filter: Optional[str] = None,
     ) -> List[RetrievalResultItem]:
         """Performs BM25 keyword scoring over candidate chunks with optional metadata filters."""
         if not self.bm25 or not self.chunks or not query.strip():
@@ -144,6 +145,8 @@ class BM25SearchEngine:
             if machine_id_filter and chunk.metadata.machine_id != machine_id_filter:
                 continue
             if incident_type_filter and chunk.metadata.incident_type != incident_type_filter:
+                continue
+            if document_id_filter and chunk.document_id != document_id_filter:
                 continue
 
             scored_candidates.append((score, chunk))

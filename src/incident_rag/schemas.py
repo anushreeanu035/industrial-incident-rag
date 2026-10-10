@@ -111,6 +111,7 @@ class RetrievalRequest(BaseModel):
     top_k: int = Field(default=5, ge=1, le=50)
     machine_id_filter: Optional[str] = None
     incident_type_filter: Optional[str] = None
+    document_id_filter: Optional[str] = None
     enable_rewriting: Optional[bool] = None
 
 
@@ -167,6 +168,7 @@ class InvestigationRequest(BaseModel):
     query: str
     machine_id_filter: Optional[str] = None
     incident_type_filter: Optional[str] = None
+    document_id_filter: Optional[str] = None
     strategy: RetrievalStrategy = RetrievalStrategy.FULL_ADVANCED
     top_k: int = Field(default=5, ge=1, le=20)
     enable_rewriting: Optional[bool] = None

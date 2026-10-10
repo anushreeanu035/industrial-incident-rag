@@ -82,6 +82,7 @@ class APIClient:
         machine_id_filter: Optional[str] = None,
         incident_type_filter: Optional[str] = None,
         enable_rewriting: Optional[bool] = None,
+        document_id_filter: Optional[str] = None,
     ) -> Dict[str, Any]:
         payload = {
             "query": query,
@@ -90,6 +91,7 @@ class APIClient:
             "machine_id_filter": machine_id_filter or None,
             "incident_type_filter": incident_type_filter or None,
             "enable_rewriting": enable_rewriting,
+            "document_id_filter": document_id_filter or None,
         }
         return self._post("/api/v1/retrieve", payload, timeout=30.0)
 
@@ -101,6 +103,7 @@ class APIClient:
         machine_id_filter: Optional[str] = None,
         incident_type_filter: Optional[str] = None,
         enable_rewriting: Optional[bool] = None,
+        document_id_filter: Optional[str] = None,
     ) -> Dict[str, Any]:
         payload = {
             "query": query,
@@ -109,6 +112,7 @@ class APIClient:
             "machine_id_filter": machine_id_filter or None,
             "incident_type_filter": incident_type_filter or None,
             "enable_rewriting": enable_rewriting,
+            "document_id_filter": document_id_filter or None,
         }
         return self._post("/api/v1/investigate", payload, timeout=45.0)
 

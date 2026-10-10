@@ -22,6 +22,7 @@ class DenseSearchEngine:
         top_k: int = 10,
         machine_id_filter: Optional[str] = None,
         incident_type_filter: Optional[str] = None,
+        document_id_filter: Optional[str] = None,
     ) -> List[RetrievalResultItem]:
         """Encodes query and queries vector store."""
         if not query.strip():
@@ -33,5 +34,6 @@ class DenseSearchEngine:
             top_k=top_k,
             machine_id_filter=machine_id_filter,
             incident_type_filter=incident_type_filter,
+            document_id_filter=document_id_filter,
         )
         return results
