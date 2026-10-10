@@ -15,10 +15,25 @@ if sys.platform == "win32":
     if sys.stderr and hasattr(sys.stderr, "reconfigure"):
         sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
+def _sync_streamlit_secrets(env: dict):
+    """Bridges Streamlit Community Cloud Secrets to the FastAPI subprocess environment."""
+    try:
+        import streamlit as st
+        if hasattr(st, "secrets"):
+            for key in st.secrets:
+                val = st.secrets[key]
+                if isinstance(val, (str, int, float, bool)):
+                    env[str(key)] = str(val)
+                    os.environ[str(key)] = str(val)
+    except Exception:
+        pass
+
+
 def _get_env():
     env = os.environ.copy()
     env["PYTHONIOENCODING"] = "utf-8"
     env["PYTHONUTF8"] = "1"
+    _sync_streamlit_secrets(env)
     project_root = os.path.abspath(".")
     src_dir = os.path.abspath("src")
     existing_pythonpath = env.get("PYTHONPATH", "")
