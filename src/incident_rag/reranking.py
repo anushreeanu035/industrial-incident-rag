@@ -43,11 +43,23 @@ class CrossEncoderReranker:
             scores = self.model.predict(pairs, show_progress_bar=False)
             latency_ms = (time.perf_counter() - start_time) * 1000.0
 
+            # Extract equipment identifiers from query to prioritize exact equipment matches
+            import re
+            query_machines = set(re.findall(r"\b([A-Z]{1,4}-[0-9]{2,4}[A-Z]?)\b", query))
+
             # Attach scores to candidate copies
             scored_candidates = []
             for item, score in zip(candidates, scores):
                 item_copy = item.model_copy()
-                item_copy.rerank_score = float(score)
+                base_score = float(score)
+                boost = 0.0
+                if query_machines:
+                    item_machines = set(re.findall(r"\b([A-Z]{1,4}-[0-9]{2,4}[A-Z]?)\b", item.text))
+                    if item.metadata.machine_id:
+                        item_machines.add(item.metadata.machine_id)
+                    if query_machines.intersection(item_machines):
+                        boost += 2.0  # Prioritize exact equipment match over other machines
+                item_copy.rerank_score = base_score + boost
                 scored_candidates.append(item_copy)
 
             # Sort descending by cross-encoder score

@@ -247,7 +247,7 @@ if "latest_investigation" in st.session_state:
     )
 
     # Documented Observations & Telemetry
-    obs_list = resp.get("documented_observations", [])
+    obs_list = [str(o).strip() for o in resp.get("documented_observations", []) if str(o).strip()]
     if obs_list:
         st.markdown("### 🔍 Documented Physical Observations & Telemetry")
         for obs in obs_list:
@@ -261,14 +261,14 @@ if "latest_investigation" in st.session_state:
             render_hypothesis_card(hyp)
 
     # Corrective and Preventive Actions
-    actions = resp.get("corrective_actions", [])
+    actions = [str(a).strip() for a in resp.get("corrective_actions", []) if str(a).strip()]
     if actions:
         st.markdown("### 🛠️ Mandated Corrective Actions")
         for act in actions:
             st.markdown(f"- {act}")
 
     # Missing Evidence / Uncertainties
-    uncertainties = resp.get("missing_evidence_and_uncertainties", [])
+    uncertainties = [str(u).strip() for u in resp.get("missing_evidence_and_uncertainties", []) if str(u).strip()]
     if uncertainties:
         st.markdown("### ❓ Missing Evidence & Forensic Uncertainties")
         for u in uncertainties:

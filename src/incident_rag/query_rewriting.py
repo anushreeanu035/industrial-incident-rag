@@ -74,12 +74,19 @@ class QueryRewriter:
                 data = json.loads(raw_content)
                 rewritten = data.get("rewritten_queries", [])
 
-                # Clean and deduplicate queries
+                # Clean and deduplicate queries, strictly preserving machine ID if present
                 clean_rewrites = []
+                # Extract any machine tag from original query
+                machine_match = re.search(r"\b([A-Z]{1,4}-[0-9]{2,4}[A-Z]?)\b", query)
+                machine_id = machine_match.group(1) if machine_match else ""
+
                 for q in rewritten:
                     q_str = str(q).strip()
-                    if q_str and q_str != query and q_str not in clean_rewrites:
-                        clean_rewrites.append(q_str)
+                    if q_str and q_str != query:
+                        if machine_id and machine_id.lower() not in q_str.lower():
+                            q_str = f"{machine_id} {q_str}"
+                        if q_str not in clean_rewrites:
+                            clean_rewrites.append(q_str)
 
                 if clean_rewrites:
                     logger.info(f"Groq generated {len(clean_rewrites)} rewritten queries for: '{query}'")
@@ -101,7 +108,7 @@ class QueryRewriter:
         """Deterministic heuristic query expansion preserving technical codes and synonyms."""
         variants = []
 
-        # Find machine IDs (e.g. HP-17, RX-404)
+        # Find machine IDs (e.g. HP-17, RX-404, K-102)
         machine_match = re.search(r"\b([A-Z]{1,4}-[0-9]{2,4}[A-Z]?)\b", query)
         machine_id = machine_match.group(1) if machine_match else ""
 
@@ -129,6 +136,9 @@ class QueryRewriter:
 
         if not variants:
             # Default variant appending domain terms
-            variants.append(f"{query} root cause failure analysis corrective action")
+            if machine_id and machine_id.lower() not in query.lower():
+                variants.append(f"{machine_id} {query} root cause failure analysis corrective action")
+            else:
+                variants.append(f"{query} root cause failure analysis corrective action")
 
         return variants[:limit]

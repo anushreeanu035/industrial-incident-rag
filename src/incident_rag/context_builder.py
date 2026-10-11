@@ -43,14 +43,29 @@ def build_investigation_context(
 
         cleaned_text = sanitize_document_text(item.text)
 
-        header = f"--- EVIDENCE ITEM {citation_id} | Source: {meta.source_filename} | {page_str} | {machine_str} | Chunk: {item.chunk_id} ---"
+        # Detect section header in passage if present
+        sec_match = re.search(r"#{1,3}\s+([^\n\r]+)", cleaned_text)
+        if not sec_match:
+            sec_match = re.search(r"\b(\d+\.\s+[A-Za-z\s&]{4,40})", cleaned_text)
+        section_name = sec_match.group(1).strip() if sec_match else None
+        section_str = f" | Section: {section_name}" if section_name else ""
+
+        header = f"--- EVIDENCE ITEM {citation_id} | Source: {meta.source_filename} | {page_str} | {machine_str}{section_str} | Chunk: {item.chunk_id} ---"
         context_lines.append(header)
         context_lines.append(cleaned_text)
         context_lines.append("")
 
-        # Create citation object
-        # Take first 180 chars as representative excerpt
-        excerpt = cleaned_text[:200] + ("..." if len(cleaned_text) > 200 else "")
+        # Create citation object with clean word-boundary excerpt
+        if len(cleaned_text) <= 250:
+            excerpt = cleaned_text
+        else:
+            truncated = cleaned_text[:250]
+            last_space = truncated.rfind(" ")
+            excerpt = (truncated[:last_space] if last_space > 180 else truncated) + "..."
+
+        score_repr = f"{item.rerank_score:.2f}" if item.rerank_score is not None else "N/A"
+        relevance_info = f"Retrieved rank #{item.final_rank} (Rerank score: {score_repr}{section_str})"
+
         citations.append(
             EvidenceCitation(
                 citation_id=citation_id,
@@ -59,7 +74,7 @@ def build_investigation_context(
                 source_name=meta.source_filename,
                 page_number=meta.page_number,
                 excerpt=excerpt,
-                relevance_reason=f"Retrieved rank #{item.final_rank} (Rerank score: {item.rerank_score or 'N/A'})",
+                relevance_reason=relevance_info,
             )
         )
 
