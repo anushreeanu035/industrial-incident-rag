@@ -139,11 +139,11 @@ with st.form("investigation_form"):
     user_query = st.text_area(
         "Investigation Query / Equipment Inquiry:",
         value=st.session_state.get("query_input", "What caused the high vibration and babbitt wiping on steam turbine HP-17?"),
-        height=90,
+        height=85,
         placeholder="Enter technical question regarding machine trips, root causes, sensor alarms, or maintenance records...",
     )
 
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3, c4 = st.columns([2, 3, 2, 2], vertical_alignment="bottom")
     with c1:
         machine_id_choice = st.selectbox(
             "Machine ID Filter (Optional):",
@@ -221,7 +221,7 @@ if "latest_investigation" in st.session_state:
             "Review missing uncertainties below."
         )
 
-    col_res_header, col_download = st.columns([3, 1])
+    col_res_header, col_download = st.columns([3, 1], vertical_alignment="bottom")
     with col_res_header:
         st.markdown("### 📋 Executive Investigation Summary")
     with col_download:
@@ -237,8 +237,8 @@ if "latest_investigation" in st.session_state:
         )
     st.markdown(
         f"""
-        <div class="industrial-card" style="border-left: 4px solid #0F1E36; background-color: #F8FAFC;">
-            <p style="font-size: 1.05rem; color: #1E293B; line-height: 1.6; margin: 0;">
+        <div class="industrial-card" style="border-left: 4px solid #2563EB; background-color: #F8FAFC;">
+            <p style="font-size: 14px; color: #1E293B; line-height: 1.6; margin: 0;">
                 {resp.get("executive_summary", "No summary provided.")}
             </p>
         </div>

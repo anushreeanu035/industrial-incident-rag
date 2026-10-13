@@ -1,98 +1,516 @@
-/* Industrial Incident Investigator - Design System */
+/* Industrial Incident Investigator - Enterprise Design System */
 
 :root {
     --primary-navy: #0f1e36;
     --navy-surface: #172a45;
-    --navy-light: #23395d;
-    --accent-blue: #1e88e5;
-    --accent-teal: #00897b;
+    --navy-light: #1e3a5f;
+    --navy-dark: #0a1628;
+    --accent-blue: #2563eb;
+    --accent-blue-hover: #3b82f6;
+    --accent-blue-light: #eff6ff;
+    --accent-blue-border: #bfdbfe;
+    --accent-teal: #0d9488;
+    --accent-purple: #7c3aed;
     --text-primary: #1e293b;
+    --text-secondary: #475569;
     --text-muted: #64748b;
     --bg-light: #f8fafc;
+    --bg-card: #ffffff;
     --border-color: #e2e8f0;
+    --border-subtle: #cbd5e1;
     --warning-amber: #d97706;
     --danger-red: #dc2626;
     --success-green: #16a34a;
+    --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+    --shadow-sm: 0 1px 3px 0 rgba(15, 30, 54, 0.04);
+    --shadow-md: 0 4px 14px -2px rgba(15, 30, 54, 0.08);
+    --shadow-lg: 0 10px 25px -4px rgba(15, 30, 54, 0.1);
 }
 
-/* Global Container Tweaks */
+/* ==========================================================================
+   1. Global Layout & Screen Utilization (1366x768 & Responsive)
+   ========================================================================== */
+
+/* Fill browser width effectively while keeping comfortable gutters */
 .main .block-container {
-    padding-top: 2rem;
-    padding-bottom: 3rem;
-    max-width: 1280px;
+    max-width: 1400px !important;
+    width: 100% !important;
+    padding-top: 1.25rem !important;
+    padding-bottom: 2.25rem !important;
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
+    animation: pageContentFadeIn 0.25s var(--ease-spring);
 }
 
-/* Header Banner */
+@keyframes pageContentFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Streamlit Header Bar */
+header[data-testid="stHeader"] {
+    background: transparent !important;
+    height: 2.5rem !important;
+}
+
+/* Clean, balanced spacing between elements */
+div[data-testid="stVerticalBlock"] {
+    gap: 12px !important;
+}
+
+div[data-testid="stHorizontalBlock"] {
+    gap: 14px !important;
+}
+
+/* Dividers */
+hr, [data-testid="stDivider"] {
+    margin: 1.15rem 0 !important;
+    border-color: var(--border-color) !important;
+}
+
+/* ==========================================================================
+   2. Typography System (Readable & Well-Proportioned)
+   ========================================================================== */
+
+html, body, [data-testid="stAppViewContainer"] {
+    font-family: var(--font-stack) !important;
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    background-color: var(--bg-light);
+}
+
+/* Main Page Titles: 22-26px, bold */
+h1, [data-testid="stMarkdownContainer"] h1 {
+    font-size: 24px !important;
+    font-weight: 700 !important;
+    line-height: 1.3 !important;
+    color: var(--primary-navy) !important;
+    margin: 0 0 6px 0 !important;
+}
+
+/* Section Headings: 16-18px, semibold */
+h2, [data-testid="stMarkdownContainer"] h2,
+h3, [data-testid="stMarkdownContainer"] h3 {
+    font-size: 17px !important;
+    font-weight: 600 !important;
+    line-height: 1.4 !important;
+    color: var(--primary-navy) !important;
+    margin-top: 0.75rem !important;
+    margin-bottom: 0.4rem !important;
+}
+
+/* Card Headings: 14-16px, semibold */
+h4, [data-testid="stMarkdownContainer"] h4,
+h5, [data-testid="stMarkdownContainer"] h5,
+.card-heading {
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    line-height: 1.4 !important;
+    color: var(--primary-navy) !important;
+    margin-top: 0.25rem !important;
+    margin-bottom: 0.25rem !important;
+}
+
+/* Body Text & Descriptions: 13-14px */
+p, [data-testid="stMarkdownContainer"] p,
+li, [data-testid="stMarkdownContainer"] li {
+    font-size: 13.5px !important;
+    line-height: 1.55 !important;
+    color: var(--text-primary);
+}
+
+/* Input Labels: 12-14px */
+label,
+[data-testid="stWidgetLabel"] p,
+[data-testid="stWidgetLabel"] label,
+[data-testid="stWidgetLabel"] span {
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    color: #334155 !important;
+    margin-bottom: 4px !important;
+    line-height: 1.35 !important;
+}
+
+/* Input Values and Dropdowns: 13-14px */
+input,
+textarea,
+select,
+div[data-baseweb="select"] *,
+div[data-baseweb="input"] input,
+.stTextInput input,
+.stNumberInput input,
+.stTextArea textarea {
+    font-size: 13.5px !important;
+    font-family: var(--font-stack) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Form Inputs Height: ~38-42px */
+div[data-baseweb="input"],
+div[data-baseweb="select"] > div:first-child,
+.stTextInput > div > div,
+.stNumberInput > div > div,
+.stSelectbox > div > div {
+    min-height: 38px !important;
+    height: 38px !important;
+    border-radius: 6px !important;
+    border-color: var(--border-color) !important;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease !important;
+}
+
+div[data-baseweb="input"]:focus-within,
+div[data-baseweb="select"] > div:first-child:focus-within {
+    border-color: var(--accent-blue) !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+}
+
+div[data-baseweb="input"] input {
+    height: 36px !important;
+    padding: 6px 12px !important;
+}
+
+div[data-baseweb="select"] {
+    min-height: 38px !important;
+}
+
+/* Textarea styling */
+.stTextArea textarea {
+    padding: 10px 12px !important;
+    border-radius: 6px !important;
+    font-size: 13.5px !important;
+    line-height: 1.5 !important;
+    border-color: var(--border-color) !important;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease !important;
+}
+
+.stTextArea textarea:focus {
+    border-color: var(--accent-blue) !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+}
+
+/* Checkbox alignment and comfortable spacing */
+.stCheckbox {
+    margin-top: 0.25rem !important;
+    margin-bottom: 0.25rem !important;
+}
+
+.stCheckbox label {
+    font-size: 13px !important;
+    cursor: pointer;
+}
+
+/* Buttons: 12-14px, Height ~38px with smooth transitions and hover elevation */
+div.stButton > button,
+div[data-testid="stFormSubmitButton"] > button,
+div[data-testid="stDownloadButton"] > button {
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+    font-family: var(--font-stack) !important;
+    min-height: 38px !important;
+    height: 38px !important;
+    padding: 6px 16px !important;
+    border-radius: 6px !important;
+    line-height: 1.3 !important;
+    border: 1px solid var(--border-subtle) !important;
+    background-color: var(--bg-card) !important;
+    color: var(--text-primary) !important;
+    transition: transform 0.18s var(--ease-spring), box-shadow 0.18s var(--ease-spring), background-color 0.18s ease, border-color 0.18s ease !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+
+div.stButton > button:hover,
+div[data-testid="stFormSubmitButton"] > button:hover,
+div[data-testid="stDownloadButton"] > button:hover {
+    background-color: #f8fafc !important;
+    border-color: #94a3b8 !important;
+    color: var(--primary-navy) !important;
+    transform: translateY(-1.5px) !important;
+    box-shadow: 0 4px 10px rgba(15, 30, 54, 0.08) !important;
+}
+
+div.stButton > button:active,
+div[data-testid="stFormSubmitButton"] > button:active,
+div[data-testid="stDownloadButton"] > button:active {
+    transform: translateY(0) !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+
+div.stButton > button:focus-visible,
+div[data-testid="stFormSubmitButton"] > button:focus-visible,
+div[data-testid="stDownloadButton"] > button:focus-visible {
+    outline: 2px solid var(--accent-blue) !important;
+    outline-offset: 2px !important;
+}
+
+/* Primary Button Styling */
+div.stButton > button[kind="primary"],
+div[data-testid="stFormSubmitButton"] > button[kind="primary"],
+div.stButton > button[data-testid="stBaseButton-primary"],
+div[data-testid="stFormSubmitButton"] > button[data-testid="stBaseButton-primary"] {
+    background-color: var(--accent-blue) !important;
+    border-color: #1d4ed8 !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2) !important;
+}
+
+div.stButton > button[kind="primary"]:hover,
+div[data-testid="stFormSubmitButton"] > button[kind="primary"]:hover,
+div.stButton > button[data-testid="stBaseButton-primary"]:hover,
+div[data-testid="stFormSubmitButton"] > button[data-testid="stBaseButton-primary"]:hover {
+    background-color: var(--accent-blue-hover) !important;
+    border-color: var(--accent-blue) !important;
+    color: #ffffff !important;
+    transform: translateY(-1.5px) !important;
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3) !important;
+}
+
+/* Navigation Links (st.page_link) */
+[data-testid="stPageLink-NavLink"] {
+    font-size: 13px !important;
+    padding: 6px 12px !important;
+    border-radius: 6px !important;
+    border: 1px solid transparent !important;
+    transition: all 0.18s var(--ease-spring) !important;
+}
+
+[data-testid="stPageLink-NavLink"]:hover {
+    background-color: var(--accent-blue-light) !important;
+    border-color: var(--accent-blue-border) !important;
+    color: #1d4ed8 !important;
+    transform: translateX(2px) !important;
+}
+
+/* Captions and Metadata: 11-12px */
+[data-testid="stCaptionContainer"],
+.stCaption,
+small,
+.metadata-text {
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+    color: var(--text-muted) !important;
+}
+
+/* ==========================================================================
+   3. Page Header Banner (Prominent, Elegant Glow & Smooth Fade-In)
+   ========================================================================== */
+
 .incident-header-banner {
-    background: linear-gradient(135deg, #0f1e36 0%, #1e3a5f 100%);
+    position: relative;
+    background: linear-gradient(135deg, #0a1628 0%, #132742 50%, #1e3a5f 100%);
     color: #ffffff;
-    padding: 1.5rem 2rem;
-    border-radius: 10px;
-    margin-bottom: 1.5rem;
-    border-left: 6px solid #1e88e5;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    min-height: 82px;
+    padding: 1.15rem 1.75rem;
+    border-radius: 8px;
+    margin-bottom: 1.25rem;
+    border-left: 5px solid var(--accent-blue);
+    box-shadow: 0 4px 18px -2px rgba(15, 30, 54, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+    animation: headerEntrance 0.35s var(--ease-spring);
+}
+
+.incident-header-banner::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 320px;
+    height: 100%;
+    background: radial-gradient(circle at right center, rgba(37, 99, 235, 0.18), transparent 70%);
+    pointer-events: none;
+}
+
+@keyframes headerEntrance {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .incident-header-banner h1 {
     color: #ffffff !important;
-    font-size: 1.8rem;
-    font-weight: 700;
-    margin: 0 0 0.4rem 0;
+    font-size: 24px !important;
+    font-weight: 700 !important;
+    margin: 0 0 4px 0 !important;
+    line-height: 1.25 !important;
+    letter-spacing: -0.01em;
 }
 
 .incident-header-banner p {
     color: #cbd5e1 !important;
-    font-size: 0.95rem;
-    margin: 0;
+    font-size: 13.5px !important;
+    line-height: 1.45 !important;
+    margin: 0 !important;
 }
 
-/* Industrial Metric Card */
+/* ==========================================================================
+   4. Cards & Containers (Smooth Hover Lift & Subtle Shadows)
+   ========================================================================== */
+
 .industrial-card {
-    background-color: #ffffff;
-    border: 1px solid #e2e8f0;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
-    padding: 1.25rem;
-    margin-bottom: 1rem;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
-    transition: transform 0.2s, box-shadow 0.2s;
+    padding: 16px 20px !important;
+    margin-bottom: 12px !important;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.22s var(--ease-spring), box-shadow 0.22s var(--ease-spring), border-color 0.2s ease;
 }
 
 .industrial-card:hover {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2.5px);
+    box-shadow: var(--shadow-md);
+    border-color: #cbd5e1;
 }
 
-/* Confidence Badges */
+/* Streamlit Container with border=True (Platform Capability Cards) */
+div[data-testid="stVerticalBlockBorderWrapper"] > div {
+    padding: 16px 20px !important;
+    border-radius: 8px !important;
+    border: 1px solid var(--border-color) !important;
+    background-color: var(--bg-card) !important;
+    box-shadow: var(--shadow-sm) !important;
+    transition: transform 0.22s var(--ease-spring), box-shadow 0.22s var(--ease-spring), border-color 0.2s ease !important;
+}
+
+div[data-testid="stVerticalBlockBorderWrapper"] > div:hover {
+    transform: translateY(-3px);
+    border-color: #93c5fd !important;
+    box-shadow: var(--shadow-md) !important;
+}
+
+/* Capability Card Specific Subcomponents */
+.capability-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.35rem;
+}
+
+.capability-title {
+    font-size: 15.5px !important;
+    font-weight: 600 !important;
+    color: var(--primary-navy) !important;
+    margin: 0 !important;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.capability-tag {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: var(--accent-blue) !important;
+    background-color: var(--accent-blue-light) !important;
+    border: 1px solid var(--accent-blue-border) !important;
+    border-radius: 4px !important;
+    padding: 2px 7px !important;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.capability-desc {
+    color: var(--text-secondary) !important;
+    font-size: 13.5px !important;
+    line-height: 1.55 !important;
+    min-height: 64px;
+    margin-bottom: 0.85rem !important;
+}
+
+/* Metric Cards: Bold, Clear, Distinct Top Accents */
+[data-testid="stMetric"] {
+    position: relative;
+    padding: 14px 18px !important;
+    background-color: var(--bg-card) !important;
+    border: 1px solid var(--border-color) !important;
+    border-top: 3px solid var(--accent-blue) !important;
+    border-radius: 8px !important;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s var(--ease-spring), box-shadow 0.2s var(--ease-spring), border-color 0.2s ease;
+}
+
+[data-testid="stMetric"]:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: #cbd5e1 !important;
+}
+
+/* Subtle Visual Distinction for the 4 Home Dashboard Metric Cards */
+div[data-testid="stHorizontalBlock"] > div:nth-child(1) [data-testid="stMetric"] {
+    border-top-color: var(--success-green) !important;
+}
+div[data-testid="stHorizontalBlock"] > div:nth-child(2) [data-testid="stMetric"] {
+    border-top-color: var(--accent-blue) !important;
+}
+div[data-testid="stHorizontalBlock"] > div:nth-child(3) [data-testid="stMetric"] {
+    border-top-color: var(--accent-teal) !important;
+}
+div[data-testid="stHorizontalBlock"] > div:nth-child(4) [data-testid="stMetric"] {
+    border-top-color: var(--accent-purple) !important;
+}
+
+[data-testid="stMetricLabel"] p {
+    font-size: 12.5px !important;
+    font-weight: 600 !important;
+    color: var(--text-muted) !important;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 3px !important;
+}
+
+[data-testid="stMetricValue"] div {
+    font-size: 24px !important;
+    font-weight: 700 !important;
+    color: var(--primary-navy) !important;
+    line-height: 1.25 !important;
+}
+
+[data-testid="stMetricDelta"] div {
+    font-size: 12px !important;
+    font-weight: 500 !important;
+}
+
+/* Badges: 11-12px */
+.badge-fact,
+.badge-hypothesis,
+.badge-warning {
+    font-size: 11.5px !important;
+    font-weight: 600 !important;
+    padding: 3px 8px !important;
+    border-radius: 9999px !important;
+    display: inline-block;
+    transition: all 0.15s ease;
+}
+
 .badge-fact {
     background-color: #dcfce7;
     color: #15803d;
-    font-size: 0.8rem;
-    font-weight: 600;
-    padding: 0.2rem 0.6rem;
-    border-radius: 9999px;
     border: 1px solid #bbf7d0;
-    display: inline-block;
 }
 
 .badge-hypothesis {
     background-color: #fef3c7;
     color: #b45309;
-    font-size: 0.8rem;
-    font-weight: 600;
-    padding: 0.2rem 0.6rem;
-    border-radius: 9999px;
     border: 1px solid #fde68a;
-    display: inline-block;
 }
 
 .badge-warning {
     background-color: #fee2e2;
     color: #b91c1c;
-    font-size: 0.8rem;
-    font-weight: 600;
-    padding: 0.2rem 0.6rem;
-    border-radius: 9999px;
     border: 1px solid #fecaca;
-    display: inline-block;
 }
 
 /* Citation Chip */
@@ -100,21 +518,145 @@
     background-color: #eff6ff;
     color: #1d4ed8;
     border: 1px solid #bfdbfe;
-    font-size: 0.75rem;
-    font-weight: 600;
-    padding: 0.15rem 0.5rem;
+    font-size: 11.5px !important;
+    font-weight: 600 !important;
+    padding: 2px 7px !important;
     border-radius: 4px;
     cursor: pointer;
     display: inline-block;
-    margin-right: 0.25rem;
+    margin-right: 4px;
+    transition: all 0.15s ease;
 }
 
-/* Stage Result Card in Explorer */
-.stage-card {
-    background-color: #f8fafc;
-    border: 1px solid #cbd5e1;
-    border-left: 4px solid #0f1e36;
-    border-radius: 6px;
-    padding: 0.75rem 1rem;
-    margin-bottom: 0.75rem;
+.citation-chip:hover {
+    background-color: #dbeafe;
+    border-color: #93c5fd;
+    transform: translateY(-1px);
+}
+
+/* Expanders */
+[data-testid="stExpander"] {
+    border-radius: 8px !important;
+    border: 1px solid var(--border-color) !important;
+    margin-bottom: 10px !important;
+    background-color: var(--bg-card) !important;
+    box-shadow: var(--shadow-sm);
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+[data-testid="stExpander"]:hover {
+    border-color: #cbd5e1 !important;
+}
+
+[data-testid="stExpander"] summary {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    padding: 10px 14px !important;
+}
+
+[data-testid="stExpander"] [data-testid="stExpanderDetails"] {
+    padding: 12px 16px !important;
+}
+
+/* Tabs */
+[data-testid="stTabs"] button {
+    font-size: 13.5px !important;
+    font-weight: 500 !important;
+    padding: 8px 16px !important;
+    transition: color 0.15s ease;
+}
+
+/* Tables / DataFrames */
+[data-testid="stDataFrame"] {
+    border-radius: 8px !important;
+    margin-bottom: 12px !important;
+}
+
+/* ==========================================================================
+   5. Sidebar (Spacious, Clear, Subtle Hover Highlighting)
+   ========================================================================== */
+
+section[data-testid="stSidebar"] {
+    min-width: 290px !important;
+    max-width: 330px !important;
+    width: 310px !important;
+    background-color: #ffffff !important;
+    border-right: 1px solid var(--border-color) !important;
+}
+
+section[data-testid="stSidebar"] .block-container {
+    padding: 1.25rem 1rem !important;
+}
+
+section[data-testid="stSidebar"] div.stButton > button {
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    min-height: 36px !important;
+    height: 36px !important;
+    padding: 6px 12px !important;
+    margin-bottom: 4px !important;
+    text-align: left !important;
+    justify-content: flex-start !important;
+    background-color: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-left: 3px solid transparent !important;
+    color: #334155 !important;
+    border-radius: 6px !important;
+    transition: all 0.16s var(--ease-spring) !important;
+    box-shadow: none !important;
+}
+
+section[data-testid="stSidebar"] div.stButton > button:hover {
+    background-color: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+    border-left-color: var(--accent-blue) !important;
+    color: var(--primary-navy) !important;
+    transform: translateX(3px) !important;
+    box-shadow: 0 2px 6px rgba(15, 30, 54, 0.05) !important;
+}
+
+section[data-testid="stSidebar"] [data-testid="stSidebarNav"] span,
+section[data-testid="stSidebar"] [data-testid="stSidebarNav"] a {
+    font-size: 13px !important;
+}
+
+section[data-testid="stSidebar"] h2 {
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    line-height: 1.3 !important;
+    color: var(--primary-navy) !important;
+    margin-bottom: 3px !important;
+}
+
+section[data-testid="stSidebar"] h3 {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted) !important;
+    margin-top: 0.8rem !important;
+    margin-bottom: 0.35rem !important;
+}
+
+section[data-testid="stSidebar"] p,
+section[data-testid="stSidebar"] li,
+section[data-testid="stSidebar"] span {
+    font-size: 12.5px !important;
+    line-height: 1.45 !important;
+}
+
+/* ==========================================================================
+   6. Accessibility: Respect Reduced Motion Preferences
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+        transform: none !important;
+    }
 }

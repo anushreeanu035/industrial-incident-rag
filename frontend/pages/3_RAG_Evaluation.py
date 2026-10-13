@@ -104,20 +104,32 @@ if active_report:
     st.markdown(f"### 📈 Benchmark Results: `{active_report.get('run_id')}`")
 
     # Metadata Banner
-    m_col1, m_col2, m_col3, m_col4 = st.columns(4)
-    with m_col1:
-        st.markdown(f"**Timestamp:** `{active_report.get('timestamp')}`")
-        st.markdown(f"**Dataset Version:** `{active_report.get('dataset_version')}`")
-    with m_col2:
-        st.markdown(f"**Dataset Hash:** `{active_report.get('dataset_hash', '')[:12]}...`")
-        st.markdown(f"**Embedding Model:** `{active_report.get('embedding_model')}`")
-    with m_col3:
-        st.markdown(f"**Reranker Model:** `{active_report.get('reranker_model')}`")
-        st.markdown(f"**LLM Model:** `{active_report.get('llm_model')}`")
-    with m_col4:
-        config = active_report.get("configuration", {})
-        st.markdown(f"**Top-K:** `{config.get('top_k')}` | **RRF k:** `{config.get('rrf_k')}`")
-        st.markdown(f"**Chunk Size:** `{config.get('chunk_size')}` | **Overlap:** `{config.get('chunk_overlap')}`")
+    config = active_report.get("configuration", {})
+    st.markdown(
+        f"""
+        <div class="industrial-card" style="border-top: 3px solid #2563EB; padding: 16px 20px; margin-bottom: 12px;">
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; font-size: 13px; color: #334155; line-height: 1.5;">
+                <div>
+                    <div><strong>Timestamp:</strong> <code>{active_report.get('timestamp')}</code></div>
+                    <div style="margin-top: 4px;"><strong>Dataset Version:</strong> <code>{active_report.get('dataset_version')}</code></div>
+                </div>
+                <div>
+                    <div><strong>Dataset Hash:</strong> <code>{active_report.get('dataset_hash', '')[:12]}...</code></div>
+                    <div style="margin-top: 4px;"><strong>Embedding:</strong> <code>{active_report.get('embedding_model')}</code></div>
+                </div>
+                <div>
+                    <div><strong>Reranker:</strong> <code>{active_report.get('reranker_model')}</code></div>
+                    <div style="margin-top: 4px;"><strong>LLM:</strong> <code>{active_report.get('llm_model')}</code></div>
+                </div>
+                <div>
+                    <div><strong>Top-K / RRF k:</strong> <code>{config.get('top_k')}</code> / <code>{config.get('rrf_k')}</code></div>
+                    <div style="margin-top: 4px;"><strong>Chunk / Overlap:</strong> <code>{config.get('chunk_size')}</code> / <code>{config.get('chunk_overlap')}</code></div>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     # Strategy Results Table
     results = active_report.get("results", [])

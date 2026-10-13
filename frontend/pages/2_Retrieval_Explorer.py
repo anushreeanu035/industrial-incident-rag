@@ -35,20 +35,25 @@ st.markdown(
 
 st.markdown(
     """
-    Examine how the ranking of candidate evidence passages evolves through each stage of the RAG pipeline.
-    Notice how exact technical codes (like `V-204` or `E-301`) perform under **BM25**, how semantic concepts match under **Dense Search**, and how **Cross-Encoder Reranking** re-orders the final context.
-    """
+    <p style="color: #475569; font-size: 14px; line-height: 1.55; margin-bottom: 0.75rem;">
+        Examine how candidate evidence passages evolve through each stage of the RAG pipeline.
+        Observe exact code matches (e.g. <code>V-204</code>) under <b>BM25</b>, semantic similarity under <b>Dense Search</b>,
+        and re-ranked candidate ordering under <b>Cross-Encoder Reranking</b>.
+    </p>
+    """,
+    unsafe_allow_html=True,
 )
 
-# Search Controls
+# Search Controls in Compact, Well-Aligned Layout
 with st.form("retrieval_explorer_form"):
-    search_query = st.text_input(
-        "Search Query:",
-        value="orifice valve V-204 particulate blockage on steam turbine HP-17",
-        placeholder="Enter technical query or failure code to inspect retrieval pipeline...",
-    )
-    c1, c2, c3 = st.columns(3)
-    with c1:
+    col_q, col_strat = st.columns([5, 3])
+    with col_q:
+        search_query = st.text_input(
+            "Search Query:",
+            value="orifice valve V-204 particulate blockage on steam turbine HP-17",
+            placeholder="Enter technical query or failure code to inspect retrieval pipeline...",
+        )
+    with col_strat:
         strategy_label = st.selectbox(
             "Target Strategy:",
             options=[
@@ -60,12 +65,14 @@ with st.form("retrieval_explorer_form"):
             ],
             index=0,
         )
-    with c2:
-        top_k = st.slider("Top-K Candidates per Channel:", min_value=1, max_value=20, value=8)
-    with c3:
-        enable_rewriting = st.checkbox("Enable Query Rewriting", value=True)
 
-    explore_button = st.form_submit_button("🚀 Run Pipeline Inspection", use_container_width=True)
+    col_k, col_rw, col_btn = st.columns([3, 2, 3], vertical_alignment="bottom")
+    with col_k:
+        top_k = st.slider("Top-K Candidates per Channel:", min_value=1, max_value=20, value=8)
+    with col_rw:
+        enable_rewriting = st.checkbox("Enable Query Rewriting", value=True)
+    with col_btn:
+        explore_button = st.form_submit_button("🚀 Run Pipeline Inspection", use_container_width=True)
 
 STRATEGY_MAP = {
     "Full Advanced RAG (Rewriting + RRF + Rerank)": "full_advanced",
@@ -103,12 +110,27 @@ if "explorer_data" in st.session_state:
     st.markdown("### 🔄 Query Rewriting Stage")
     col_q1, col_q2 = st.columns(2)
     with col_q1:
-        st.markdown(f"**Original Query:** `{data.get('query')}`")
+        st.markdown(
+            f"""
+            <div class="industrial-card" style="border-left: 4px solid #2563EB; padding: 14px 18px; margin-bottom: 0;">
+                <div style="font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase; letter-spacing: 0.03em;">Original Query</div>
+                <div style="font-size: 14px; font-weight: 600; color: #0F1E36; margin-top: 6px;"><code>{data.get('query')}</code></div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
     with col_q2:
         if rewritten:
-            st.markdown(f"**Rewritten Variants ({len(rewritten)}):**")
-            for q in rewritten:
-                st.markdown(f"- `{q}`")
+            variants_html = "".join(f"<li style='margin-bottom: 4px;'><code>{q}</code></li>" for q in rewritten)
+            st.markdown(
+                f"""
+                <div class="industrial-card" style="border-left: 4px solid #0D9488; padding: 14px 18px; margin-bottom: 0;">
+                    <div style="font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase; letter-spacing: 0.03em;">Rewritten Variants ({len(rewritten)})</div>
+                    <ul style="margin: 6px 0 0 16px; padding: 0; font-size: 13px; color: #1E293B; line-height: 1.5;">{variants_html}</ul>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
         else:
             st.info("Query rewriting was disabled or produced no additional variants.")
 
@@ -150,7 +172,7 @@ if "explorer_data" in st.session_state:
                 st.markdown(f"**Chunk `{cid}`** | {score_col_name}: `{score_val}`")
                 st.markdown(
                     f"""
-                    <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 0.75rem; font-family: monospace; font-size: 0.82rem; color: #1E293B; white-space: pre-wrap; margin-bottom: 0.75rem; line-height: 1.5;">
+                    <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 12px 14px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 13px; color: #1E293B; white-space: pre-wrap; margin-bottom: 8px; line-height: 1.55;">
 {it.get("text", "")}
                     </div>
                     """,

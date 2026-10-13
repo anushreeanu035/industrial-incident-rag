@@ -34,10 +34,20 @@ def render_benchmark_metrics_chart(results: List[Dict[str, Any]]):
         title="Retrieval Metrics Comparison Across Strategies",
     )
     fig.update_layout(
-        yaxis=dict(range=[0, 1.05], title="Metric Score (0.0 to 1.0)"),
-        xaxis=dict(title="Retrieval Strategy"),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        margin=dict(l=40, r=40, t=60, b=40),
+        font=dict(family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif", size=12.5, color="#1E293B"),
+        title=dict(font=dict(size=15, color="#0F1E36")),
+        yaxis=dict(range=[0, 1.05], title="Score (0.0 to 1.0)", tickfont=dict(size=11)),
+        xaxis=dict(title=None, tickfont=dict(size=11)),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            font=dict(size=11.5),
+        ),
+        margin=dict(l=45, r=25, t=45, b=40),
+        height=380,
         template="plotly_white",
         hovermode="x unified",
     )
@@ -66,10 +76,20 @@ def render_latency_chart(results: List[Dict[str, Any]]):
         title="Query Execution Latency (Average vs. P95)",
     )
     fig.update_layout(
-        yaxis=dict(title="Latency (ms)"),
-        xaxis=dict(title="Retrieval Strategy"),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        margin=dict(l=40, r=40, t=60, b=40),
+        font=dict(family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif", size=12.5, color="#1E293B"),
+        title=dict(font=dict(size=15, color="#0F1E36")),
+        yaxis=dict(title="Milliseconds", tickfont=dict(size=11)),
+        xaxis=dict(title=None, tickfont=dict(size=11)),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            font=dict(size=11.5),
+        ),
+        margin=dict(l=45, r=25, t=45, b=40),
+        height=380,
         template="plotly_white",
     )
     return fig

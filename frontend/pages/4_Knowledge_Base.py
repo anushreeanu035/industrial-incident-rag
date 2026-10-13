@@ -119,7 +119,7 @@ else:
 
     # Document Deletion and Detail Inspector
     st.markdown("#### 🗑️ Document Management & Deletion")
-    col_sel, col_del = st.columns([3, 1])
+    col_sel, col_del = st.columns([3, 1], vertical_alignment="bottom")
 
     with col_sel:
         doc_to_manage = st.selectbox(
@@ -129,8 +129,6 @@ else:
         )
 
     with col_del:
-        st.write("")
-        st.write("")
         if st.button("🗑️ Delete Selected Document", type="secondary", use_container_width=True):
             if doc_to_manage:
                 doc_id = doc_to_manage.get("document_id")

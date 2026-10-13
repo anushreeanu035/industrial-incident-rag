@@ -50,7 +50,7 @@ with col1:
     st.metric(
         label="System Status",
         value="Operational" if online else "Offline",
-        delta="Connected to API" if online else "Backend Unreachable",
+        delta="API Online" if online else "Backend Offline",
     )
 with col2:
     st.metric(
@@ -76,16 +76,18 @@ st.markdown("---")
 
 st.markdown("### 🔍 Platform Capabilities")
 
-col_a, col_b = st.columns(2)
+# Row 1: Investigation Workspace and Retrieval Explorer
+row1_col1, row1_col2 = st.columns(2)
 
-with col_a:
+with row1_col1:
     with st.container(border=True):
         st.markdown(
             """
-            <div style="font-size: 1.15rem; font-weight: 700; color: #0F1E36; margin-bottom: 0.4rem;">
-                🛠️ 1. Investigation Workspace
+            <div class="capability-header">
+                <div class="capability-title">🛠️ 1. Investigation Workspace</div>
+                <span class="capability-tag">Forensic RCA</span>
             </div>
-            <p style="color: #475569; font-size: 0.9rem; line-height: 1.5; min-height: 55px; margin-bottom: 0.8rem;">
+            <p class="capability-desc">
                 Perform in-depth forensic queries with machine ID and incident filters. Receive evidence-grounded executive summaries, root cause hypotheses with confidence ratings, and fully auditable passage citations.
             </p>
             """,
@@ -95,30 +97,15 @@ with col_a:
             st.switch_page("pages/1_Investigation.py")
         st.page_link("pages/1_Investigation.py", label="Direct Link: Investigation Workspace", icon="🛠️", use_container_width=True)
 
+with row1_col2:
     with st.container(border=True):
         st.markdown(
             """
-            <div style="font-size: 1.15rem; font-weight: 700; color: #0F1E36; margin-bottom: 0.4rem;">
-                📊 3. RAG Evaluation Dashboard
+            <div class="capability-header">
+                <div class="capability-title">🔬 2. Retrieval Explorer</div>
+                <span class="capability-tag">Inspection</span>
             </div>
-            <p style="color: #475569; font-size: 0.9rem; line-height: 1.5; min-height: 55px; margin-bottom: 0.8rem;">
-                Benchmark retrieval strategies against deterministic ground-truth incident datasets. Compare Recall@5, Recall@10, Precision@K, MRR, nDCG@10, and latencies across Dense, BM25, Hybrid RRF, and Cross-Encoder reranking.
-            </p>
-            """,
-            unsafe_allow_html=True,
-        )
-        if st.button("View Evaluation Dashboard →", key="btn_nav_evaluation", use_container_width=True, type="primary"):
-            st.switch_page("pages/3_RAG_Evaluation.py")
-        st.page_link("pages/3_RAG_Evaluation.py", label="Direct Link: RAG Evaluation Dashboard", icon="📊", use_container_width=True)
-
-with col_b:
-    with st.container(border=True):
-        st.markdown(
-            """
-            <div style="font-size: 1.15rem; font-weight: 700; color: #0F1E36; margin-bottom: 0.4rem;">
-                🔬 2. Retrieval Explorer
-            </div>
-            <p style="color: #475569; font-size: 0.9rem; line-height: 1.5; min-height: 55px; margin-bottom: 0.8rem;">
+            <p class="capability-desc">
                 Inspect pipeline behavior stage-by-stage. View original and rewritten queries, candidate rankings across BM25 keyword search, dense vector retrieval, reciprocal rank fusion (RRF), and cross-encoder reranking.
             </p>
             """,
@@ -128,13 +115,36 @@ with col_b:
             st.switch_page("pages/2_Retrieval_Explorer.py")
         st.page_link("pages/2_Retrieval_Explorer.py", label="Direct Link: Retrieval Explorer", icon="🔬", use_container_width=True)
 
+# Row 2: RAG Evaluation and Knowledge Base
+row2_col1, row2_col2 = st.columns(2)
+
+with row2_col1:
     with st.container(border=True):
         st.markdown(
             """
-            <div style="font-size: 1.15rem; font-weight: 700; color: #0F1E36; margin-bottom: 0.4rem;">
-                📁 4. Knowledge Base Management
+            <div class="capability-header">
+                <div class="capability-title">📊 3. RAG Evaluation Dashboard</div>
+                <span class="capability-tag">Benchmarking</span>
             </div>
-            <p style="color: #475569; font-size: 0.9rem; line-height: 1.5; min-height: 55px; margin-bottom: 0.8rem;">
+            <p class="capability-desc">
+                Benchmark retrieval strategies against deterministic ground-truth incident datasets. Compare Recall@5, Recall@10, Precision@K, MRR, nDCG@10, and latencies across Dense, BM25, Hybrid RRF, and Cross-Encoder reranking.
+            </p>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button("View Evaluation Dashboard →", key="btn_nav_evaluation", use_container_width=True, type="primary"):
+            st.switch_page("pages/3_RAG_Evaluation.py")
+        st.page_link("pages/3_RAG_Evaluation.py", label="Direct Link: RAG Evaluation Dashboard", icon="📊", use_container_width=True)
+
+with row2_col2:
+    with st.container(border=True):
+        st.markdown(
+            """
+            <div class="capability-header">
+                <div class="capability-title">📁 4. Knowledge Base Management</div>
+                <span class="capability-tag">Repository</span>
+            </div>
+            <p class="capability-desc">
                 Upload, manage, and inspect incident reports (PDF, Markdown, TXT). View chunk counts, metadata tags, SHA-256 deduplication checksums, and trigger re-indexing or deletion.
             </p>
             """,

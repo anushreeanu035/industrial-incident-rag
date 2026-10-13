@@ -20,8 +20,8 @@ def render_hypothesis_card(hypothesis: Dict[str, Any]):
     st.markdown(
         f"""
         <div class="industrial-card" style="border-left: 4px solid #1E88E5;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
-                <h4 style="margin: 0; color: #0F1E36; font-size: 1.05rem;">{hyp_text}</h4>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.4rem;">
+                <h4 style="margin: 0; color: #0F1E36; font-size: 15.5px; font-weight: 600;">{hyp_text}</h4>
                 <span class="{badge_class}">{confidence}</span>
             </div>
         """,
@@ -65,7 +65,7 @@ def render_citation_accordion(citations: List[Dict[str, Any]]):
             st.markdown("**Original Passage Excerpt:**")
             st.markdown(
                 f"""
-                <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 0.8rem; font-family: monospace; font-size: 0.85rem; color: #1E293B; white-space: pre-wrap; line-height: 1.5;">
+                <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 12px 14px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 13px; color: #1E293B; white-space: pre-wrap; line-height: 1.55;">
 {excerpt}
                 </div>
                 """,

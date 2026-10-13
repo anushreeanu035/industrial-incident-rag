@@ -44,13 +44,16 @@ c1, c2, c3 = st.columns(3)
 with c1:
     st.markdown(
         f"""
-        <div class="industrial-card">
-            <h4 style="margin-top: 0; color: #0F1E36;">Dense Embeddings</h4>
-            <p style="font-size: 0.95rem; font-weight: 600; color: #1E88E5; margin: 0;">
+        <div class="industrial-card" style="border-top: 3px solid #2563EB;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <h4 style="margin: 0; color: #0F1E36; font-size: 15.5px; font-weight: 600;">Dense Embeddings</h4>
+                <span class="capability-tag" style="background: #EFF6FF; color: #2563EB; border-color: #BFDBFE;">384-DIM</span>
+            </div>
+            <p style="font-size: 14px; font-weight: 600; color: #2563EB; margin: 4px 0 0 0;">
                 {settings_data.get("embedding_model", "all-MiniLM-L6-v2")}
             </p>
-            <p style="font-size: 0.8rem; color: #64748B; margin-top: 0.5rem;">
-                384-dimensional normalized vectors via Sentence Transformers. Local CPU/GPU inference.
+            <p style="font-size: 13px; color: #64748B; margin-top: 6px; line-height: 1.45; margin-bottom: 0;">
+                Normalized dense vectors via Sentence Transformers. Local CPU/GPU similarity search.
             </p>
         </div>
         """,
@@ -59,13 +62,16 @@ with c1:
 with c2:
     st.markdown(
         f"""
-        <div class="industrial-card">
-            <h4 style="margin-top: 0; color: #0F1E36;">Cross-Encoder Reranker</h4>
-            <p style="font-size: 0.95rem; font-weight: 600; color: #00897B; margin: 0;">
+        <div class="industrial-card" style="border-top: 3px solid #0D9488;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <h4 style="margin: 0; color: #0F1E36; font-size: 15.5px; font-weight: 600;">Cross-Encoder Reranker</h4>
+                <span class="capability-tag" style="background: #F0FDF4; color: #0D9488; border-color: #99F6E4;">RERANKER</span>
+            </div>
+            <p style="font-size: 14px; font-weight: 600; color: #0D9488; margin: 4px 0 0 0;">
                 {settings_data.get("reranker_model", "ms-marco-MiniLM-L-6-v2")}
             </p>
-            <p style="font-size: 0.8rem; color: #64748B; margin-top: 0.5rem;">
-                Cross-attentive relevance re-scoring over (query, passage) pairs.
+            <p style="font-size: 13px; color: #64748B; margin-top: 6px; line-height: 1.45; margin-bottom: 0;">
+                Joint cross-attentive relevance scoring over (query, passage) candidate pairs.
             </p>
         </div>
         """,
@@ -74,12 +80,15 @@ with c2:
 with c3:
     st.markdown(
         f"""
-        <div class="industrial-card">
-            <h4 style="margin-top: 0; color: #0F1E36;">Inference & Rewriting LLM</h4>
-            <p style="font-size: 0.95rem; font-weight: 600; color: #7C3AED; margin: 0;">
+        <div class="industrial-card" style="border-top: 3px solid #7C3AED;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <h4 style="margin: 0; color: #0F1E36; font-size: 15.5px; font-weight: 600;">Inference & Rewriting LLM</h4>
+                <span class="capability-tag" style="background: #FAF5FF; color: #7C3AED; border-color: #E9D5FF;">CLOUD LLM</span>
+            </div>
+            <p style="font-size: 14px; font-weight: 600; color: #7C3AED; margin: 4px 0 0 0;">
                 {settings_data.get("groq_model", "llama-3.3-70b-versatile")}
             </p>
-            <p style="font-size: 0.8rem; color: #64748B; margin-top: 0.5rem;">
+            <p style="font-size: 13px; color: #64748B; margin-top: 6px; line-height: 1.45; margin-bottom: 0;">
                 Groq Cloud ultra-fast inference with fallback extractive offline synthesis.
             </p>
         </div>
