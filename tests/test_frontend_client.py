@@ -52,3 +52,4 @@ def test_api_client_investigate():
         inv = client.investigate("Why did HP-17 trip?")
         assert inv["is_sufficient_evidence"] is True
         assert len(inv["citations"]) == 1
+

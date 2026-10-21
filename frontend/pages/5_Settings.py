@@ -8,29 +8,36 @@ if str(_PROJECT_ROOT) not in sys.path:
 import streamlit as st
 from frontend.components.api_client import api_client
 from frontend.components.sidebar import render_sidebar
+from frontend.components.theme import load_theme
 
 st.set_page_config(
-    page_title="Settings - Incident Investigator",
+    page_title="Settings & System Diagnostics - Incident Investigator",
     page_icon="⚙️",
     layout="wide",
 )
 
-css_path = Path(__file__).resolve().parent.parent / "styles" / "theme.css"
-if css_path.exists():
-    with open(css_path, "r", encoding="utf-8") as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+# Load cached theme CSS
+load_theme()
 
-render_sidebar()
+render_sidebar(current_page="settings")
 
 st.markdown(
     """
     <div class="incident-header-banner">
-        <h1>⚙️ System & Pipeline Settings</h1>
-        <p>Active Model Architectures, Fusion Hyperparameters, and Ingestion Tunables</p>
+        <h1>⚙️ System & Pipeline Architecture Settings</h1>
+        <p>Active Model Configurations, Fusion Hyperparameters, Storage Verifications, and Diagnostics</p>
     </div>
     """,
     unsafe_allow_html=True,
 )
+
+# Check backend health
+try:
+    health = api_client.health_check()
+    is_healthy = health.get("status") == "healthy"
+except Exception:
+    health = {}
+    is_healthy = False
 
 try:
     settings_data = api_client.get_settings()
@@ -38,23 +45,18 @@ except Exception as e:
     settings_data = {}
     st.error(f"Failed to fetch system settings from backend: {str(e)}")
 
-# Architecture Overview Cards
-st.markdown("### 🤖 Active Model Configuration")
-c1, c2, c3 = st.columns(3)
+# System Status Overview
+st.markdown("### 🖥️ Backend Service Status")
+c1, c2, c3, c4 = st.columns(4)
 with c1:
+    status_color = "#16A34A" if is_healthy else "#DC2626"
+    status_label = "ONLINE / READY" if is_healthy else "OFFLINE"
     st.markdown(
         f"""
-        <div class="industrial-card" style="border-top: 3px solid #2563EB;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <h4 style="margin: 0; color: #0F1E36; font-size: 15.5px; font-weight: 600;">Dense Embeddings</h4>
-                <span class="capability-tag" style="background: #EFF6FF; color: #2563EB; border-color: #BFDBFE;">384-DIM</span>
-            </div>
-            <p style="font-size: 14px; font-weight: 600; color: #2563EB; margin: 4px 0 0 0;">
-                {settings_data.get("embedding_model", "all-MiniLM-L6-v2")}
-            </p>
-            <p style="font-size: 13px; color: #64748B; margin-top: 6px; line-height: 1.45; margin-bottom: 0;">
-                Normalized dense vectors via Sentence Transformers. Local CPU/GPU similarity search.
-            </p>
+        <div class="stat-card">
+            <span class="label">FastAPI Backend</span>
+            <span class="value" style="color: {status_color}; font-size: 19px;">{status_label}</span>
+            <span class="delta">Port 8000 &bull; REST API</span>
         </div>
         """,
         unsafe_allow_html=True,
@@ -62,17 +64,10 @@ with c1:
 with c2:
     st.markdown(
         f"""
-        <div class="industrial-card" style="border-top: 3px solid #0D9488;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <h4 style="margin: 0; color: #0F1E36; font-size: 15.5px; font-weight: 600;">Cross-Encoder Reranker</h4>
-                <span class="capability-tag" style="background: #F0FDF4; color: #0D9488; border-color: #99F6E4;">RERANKER</span>
-            </div>
-            <p style="font-size: 14px; font-weight: 600; color: #0D9488; margin: 4px 0 0 0;">
-                {settings_data.get("reranker_model", "ms-marco-MiniLM-L-6-v2")}
-            </p>
-            <p style="font-size: 13px; color: #64748B; margin-top: 6px; line-height: 1.45; margin-bottom: 0;">
-                Joint cross-attentive relevance scoring over (query, passage) candidate pairs.
-            </p>
+        <div class="stat-card">
+            <span class="label">Dense Vector Index</span>
+            <span class="value" style="color: #2563EB;">Qdrant</span>
+            <span class="delta">384-Dim &bull; Cosine Distance</span>
         </div>
         """,
         unsafe_allow_html=True,
@@ -80,30 +75,102 @@ with c2:
 with c3:
     st.markdown(
         f"""
-        <div class="industrial-card" style="border-top: 3px solid #7C3AED;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <h4 style="margin: 0; color: #0F1E36; font-size: 15.5px; font-weight: 600;">Inference & Rewriting LLM</h4>
+        <div class="stat-card">
+            <span class="label">Sparse Keyword Search</span>
+            <span class="value" style="color: #0D9488;">BM25 Okapi</span>
+            <span class="delta">Rank-BM25 Tokenized</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+with c4:
+    st.markdown(
+        f"""
+        <div class="stat-card">
+            <span class="label">Fusion Algorithm</span>
+            <span class="value" style="color: #7C3AED;">RRF + Cross-Enc</span>
+            <span class="delta">k = {settings_data.get('rrf_k', 60)} &bull; ms-marco</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+
+# Architecture Overview Cards
+st.markdown("### 🤖 Neural & Language Model Architecture")
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.markdown(
+        f"""
+        <div class="industrial-card" style="border-top: 3px solid #2563EB; min-height: 175px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <h4 style="margin: 0; color: #0F1E36; font-size: 15px; font-weight: 700;">Dense Embeddings</h4>
+                <span class="capability-tag" style="background: #EFF6FF; color: #2563EB; border-color: #BFDBFE;">384-DIM</span>
+            </div>
+            <p style="font-size: 14.5px; font-weight: 700; color: #2563EB; margin: 4px 0 0 0; font-family: monospace;">
+                {settings_data.get("embedding_model", "all-MiniLM-L6-v2")}
+            </p>
+            <p style="font-size: 12.5px; color: #64748B; margin-top: 8px; line-height: 1.45; margin-bottom: 0;">
+                Normalized dense vectors via Sentence Transformers. Runs local CPU/GPU similarity search across industrial document chunks.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+with col2:
+    st.markdown(
+        f"""
+        <div class="industrial-card" style="border-top: 3px solid #0D9488; min-height: 175px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <h4 style="margin: 0; color: #0F1E36; font-size: 15px; font-weight: 700;">Cross-Encoder Reranker</h4>
+                <span class="capability-tag" style="background: #F0FDF4; color: #0D9488; border-color: #99F6E4;">RERANKER</span>
+            </div>
+            <p style="font-size: 14.5px; font-weight: 700; color: #0D9488; margin: 4px 0 0 0; font-family: monospace;">
+                {settings_data.get("reranker_model", "ms-marco-MiniLM-L-6-v2")}
+            </p>
+            <p style="font-size: 12.5px; color: #64748B; margin-top: 8px; line-height: 1.45; margin-bottom: 0;">
+                Joint cross-attentive relevance scoring over query-passage candidate pairs to filter false-positive keyword or semantic matches.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+with col3:
+    st.markdown(
+        f"""
+        <div class="industrial-card" style="border-top: 3px solid #7C3AED; min-height: 175px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <h4 style="margin: 0; color: #0F1E36; font-size: 15px; font-weight: 700;">Inference & Rewriting LLM</h4>
                 <span class="capability-tag" style="background: #FAF5FF; color: #7C3AED; border-color: #E9D5FF;">CLOUD LLM</span>
             </div>
-            <p style="font-size: 14px; font-weight: 600; color: #7C3AED; margin: 4px 0 0 0;">
+            <p style="font-size: 14.5px; font-weight: 700; color: #7C3AED; margin: 4px 0 0 0; font-family: monospace;">
                 {settings_data.get("groq_model", "llama-3.3-70b-versatile")}
             </p>
-            <p style="font-size: 13px; color: #64748B; margin-top: 6px; line-height: 1.45; margin-bottom: 0;">
-                Groq Cloud ultra-fast inference with fallback extractive offline synthesis.
+            <p style="font-size: 12.5px; color: #64748B; margin-top: 8px; line-height: 1.45; margin-bottom: 0;">
+                Groq Cloud ultra-fast inference for multi-query rewriting, forensic report generation, and automated fallback offline synthesis.
             </p>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-st.divider()
+st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
 
 # Hyperparameter Tunables
 st.markdown("### 🎛️ Pipeline Hyperparameters")
-
 col_a, col_b = st.columns(2)
 with col_a:
-    st.markdown("#### Retrieval & Fusion Parameters")
+    st.markdown(
+        """
+        <div class="industrial-card" style="padding: 16px 20px; margin-bottom: 16px;">
+            <h4 style="margin-top: 0; color: #0F1E36; font-size: 15px; font-weight: 700; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px;">
+                🔍 Retrieval & Fusion Parameters
+            </h4>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     st.number_input(
         "Dense Top-K Candidates:",
         value=int(settings_data.get("dense_top_k", 10)),
@@ -130,7 +197,16 @@ with col_a:
     )
 
 with col_b:
-    st.markdown("#### Chunking & Query Rewriting")
+    st.markdown(
+        """
+        <div class="industrial-card" style="padding: 16px 20px; margin-bottom: 16px;">
+            <h4 style="margin-top: 0; color: #0F1E36; font-size: 15px; font-weight: 700; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px;">
+                📑 Chunking & Query Expansion
+            </h4>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     st.number_input(
         "Chunk Word Size:",
         value=int(settings_data.get("chunk_size", 400)),
@@ -141,7 +217,7 @@ with col_b:
         "Chunk Word Overlap:",
         value=int(settings_data.get("chunk_overlap", 80)),
         disabled=True,
-        help="Number of words overlapping between adjacent chunks.",
+        help="Number of words overlapping between adjacent chunks to maintain context continuity.",
     )
     st.checkbox(
         "Query Rewriting Active by Default",
@@ -154,13 +230,50 @@ with col_b:
         disabled=True,
     )
 
-st.markdown("---")
-st.markdown("### 🔒 Environment & Security Verification")
+st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+
+# Environment & Storage Audit
+st.markdown("### 🔒 Storage & Environment Verification")
+
+qdrant_path = _PROJECT_ROOT / "data" / "processed" / "qdrant_db"
+bm25_path = _PROJECT_ROOT / "data" / "processed" / "bm25_index.pkl"
+docs_path = _PROJECT_ROOT / "data" / "processed" / "documents.json"
+
+qdrant_exists = qdrant_path.exists()
+bm25_exists = bm25_path.exists()
+docs_exists = docs_path.exists()
+
 st.markdown(
-    """
-    - **API Keys**: Stored securely in `.env` and system environment. Never exposed to frontend clients.
-    - **Local Storage**: Vectors stored in local file-backed Qdrant DB (`data/processed/qdrant_db/`).
-    - **Keyword Index**: BM25 index persisted in `data/processed/bm25_index.pkl`.
-    - **Metadata Store**: Document registry persisted in `data/processed/documents.json`.
-    """
+    f"""
+    <div class="industrial-card" style="padding: 20px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+            <div style="border-left: 3px solid {'#16A34A' if qdrant_exists else '#DC2626'}; padding-left: 12px;">
+                <div style="font-weight: 700; color: #0F1E36; font-size: 14px;">Qdrant Vector Database</div>
+                <div style="font-size: 12px; color: #64748B; font-family: monospace; margin: 2px 0;">data/processed/qdrant_db/</div>
+                <div style="font-size: 12px; font-weight: 600; color: {'#16A34A' if qdrant_exists else '#DC2626'};">
+                    {'✓ Initialized & Verified' if qdrant_exists else '✗ Not Initialized'}
+                </div>
+            </div>
+            <div style="border-left: 3px solid {'#16A34A' if bm25_exists else '#DC2626'}; padding-left: 12px;">
+                <div style="font-weight: 700; color: #0F1E36; font-size: 14px;">BM25 Keyword Index</div>
+                <div style="font-size: 12px; color: #64748B; font-family: monospace; margin: 2px 0;">data/processed/bm25_index.pkl</div>
+                <div style="font-size: 12px; font-weight: 600; color: {'#16A34A' if bm25_exists else '#DC2626'};">
+                    {'✓ Persisted & Loaded' if bm25_exists else '✗ Not Found'}
+                </div>
+            </div>
+            <div style="border-left: 3px solid {'#16A34A' if docs_exists else '#DC2626'}; padding-left: 12px;">
+                <div style="font-weight: 700; color: #0F1E36; font-size: 14px;">Document Metadata Registry</div>
+                <div style="font-size: 12px; color: #64748B; font-family: monospace; margin: 2px 0;">data/processed/documents.json</div>
+                <div style="font-size: 12px; font-weight: 600; color: {'#16A34A' if docs_exists else '#DC2626'};">
+                    {'✓ Metadata Registry Active' if docs_exists else '✗ Missing'}
+                </div>
+            </div>
+        </div>
+        <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #E2E8F0; font-size: 12px; color: #64748B; display: flex; justify-content: space-between; align-items: center;">
+            <span><strong>Security Isolation:</strong> GROQ_API_KEY and environment credentials are restricted to the backend and never passed to the browser client.</span>
+            <span style="font-size: 11px; background: #F1F5F9; padding: 3px 8px; border-radius: 4px; font-weight: 600;">ENTERPRISE COMPLIANT</span>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
 )

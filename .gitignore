@@ -12,6 +12,8 @@ __pycache__/
 *$py.class
 *.so
 .pytest_cache/
+*.egg-info/
+
 
 # Local Data and Stores (preserve raw templates, ignore local runtime databases)
 data/processed/qdrant_db/

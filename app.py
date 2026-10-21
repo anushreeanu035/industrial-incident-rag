@@ -58,12 +58,25 @@ def _wait_for_backend(url="http://127.0.0.1:8000/health", max_retries=30, delay=
     return False
 
 
+def _get_python_exe():
+    """Finds the virtualenv python executable if available, falling back to sys.executable."""
+    # Check Windows venv
+    venv_win = os.path.abspath(os.path.join(os.path.dirname(__file__), ".venv", "Scripts", "python.exe"))
+    if os.path.exists(venv_win):
+        return venv_win
+    # Check Linux/macOS venv
+    venv_nix = os.path.abspath(os.path.join(os.path.dirname(__file__), ".venv", "bin", "python"))
+    if os.path.exists(venv_nix):
+        return venv_nix
+    return sys.executable
+
+
 def _ensure_backend_running(host="127.0.0.1", port=8000):
     """Starts FastAPI in background if not already active (essential for single-container deploys like Streamlit Cloud)."""
     health_url = f"http://{host}:{port}/health"
     if not _wait_for_backend(health_url, max_retries=1, delay=0.1):
         cmd = [
-            sys.executable,
+            _get_python_exe(),
             "-m",
             "uvicorn",
             "incident_rag.api:app",
@@ -80,8 +93,11 @@ def _ensure_backend_running(host="127.0.0.1", port=8000):
 
 # If launched directly via `streamlit run app.py`, ensure backend is up and delegate immediately to frontend/app.py
 try:
-    from streamlit.runtime.scriptrunner import get_script_run_ctx
-    if get_script_run_ctx() is not None:
+    try:
+        from streamlit.runtime.scriptrunner import get_script_run_ctx
+    except ImportError:
+        from streamlit.runtime.scriptrunner_utils.script_run_context import get_script_run_ctx
+    if get_script_run_ctx and get_script_run_ctx() is not None:
         _ensure_backend_running()
         import runpy
         _frontend_entry = os.path.abspath(os.path.join(os.path.dirname(__file__), "frontend", "app.py"))
@@ -94,7 +110,7 @@ except Exception:
 def run_backend(host="127.0.0.1", port=8000, reload=True):
     """Starts the FastAPI backend using uvicorn."""
     cmd = [
-        sys.executable,
+        _get_python_exe(),
         "-m",
         "uvicorn",
         "incident_rag.api:app",
@@ -114,7 +130,7 @@ def run_backend(host="127.0.0.1", port=8000, reload=True):
 def run_frontend(headless=False, port=8501):
     """Starts the Streamlit frontend."""
     cmd = [
-        sys.executable,
+        _get_python_exe(),
         "-m",
         "streamlit",
         "run",
@@ -134,7 +150,7 @@ def run_all(host="127.0.0.1", api_port=8000, front_port=8501):
     print(" 🚀 Launching Industrial Incident Investigator (Full Stack) ")
     print("=" * 65)
     backend_cmd = [
-        sys.executable,
+        _get_python_exe(),
         "-m",
         "uvicorn",
         "incident_rag.api:app",
@@ -158,7 +174,7 @@ def run_all(host="127.0.0.1", api_port=8000, front_port=8501):
 
         print(f"[2/2] Starting Streamlit frontend on http://127.0.0.1:{front_port} ...")
         frontend_cmd = [
-            sys.executable,
+            _get_python_exe(),
             "-m",
             "streamlit",
             "run",

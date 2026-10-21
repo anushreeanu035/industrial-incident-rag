@@ -10,6 +10,7 @@ import streamlit as st
 from frontend.components.api_client import api_client
 from frontend.components.charts import render_benchmark_metrics_chart, render_latency_chart
 from frontend.components.sidebar import render_sidebar
+from frontend.components.theme import load_theme
 
 st.set_page_config(
     page_title="RAG Evaluation Dashboard - Incident Investigator",
@@ -17,18 +18,22 @@ st.set_page_config(
     layout="wide",
 )
 
-css_path = Path(__file__).resolve().parent.parent / "styles" / "theme.css"
-if css_path.exists():
-    with open(css_path, "r", encoding="utf-8") as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+# Load cached enterprise theme CSS
+load_theme()
 
-render_sidebar()
+render_sidebar(current_page="evaluation")
+
+# Top Navigation Bar
+col_back, _ = st.columns([1, 4])
+with col_back:
+    if st.button("← Return to Dashboard", key="btn_back_home_eval"):
+        st.switch_page("app.py")
 
 st.markdown(
     """
     <div class="incident-header-banner">
         <h1>📊 RAG Evaluation & Benchmarking Dashboard</h1>
-        <p>Scientific Evaluation of Retrieval Quality, Ranking Metrics, Latencies, and Multi-Strategy Ablation</p>
+        <p>Quantitative Retrieval Evaluation: Multi-Strategy Ablation, Ranking Metrics (Recall@K, MRR, nDCG@10), and Latencies</p>
     </div>
     """,
     unsafe_allow_html=True,
@@ -56,11 +61,11 @@ with st.expander("Configure and Execute Live Benchmark Run", expanded=True):
         top_k_bench = st.slider("Top-K Evaluation Depth:", min_value=3, max_value=15, value=5)
         run_ragas_toggle = st.checkbox("Run Ragas Generation Metrics (requires LLM judge)", value=False)
 
-    if st.button("🚀 Execute Live Benchmark Run", use_container_width=True):
+    if st.button("🚀 Execute Live Benchmark Run", type="primary", use_container_width=True):
         if not selected_strategies:
             st.error("Please select at least one strategy to benchmark.")
         else:
-            with st.spinner("Executing benchmark across test cases. Computing Recall@K, Precision@K, MRR, nDCG@10, and latencies..."):
+            with st.spinner("Executing benchmark across ground truth dataset. Computing Recall@K, Precision@K, MRR, nDCG@10, and latencies..."):
                 try:
                     report = api_client.run_evaluation(
                         strategies=selected_strategies,
@@ -79,8 +84,8 @@ st.markdown("### 📁 Benchmark Reports History")
 history_runs = []
 try:
     history_runs = api_client.list_evaluations()
-except Exception as e:
-    st.warning("Could not fetch historical reports.")
+except Exception:
+    history_runs = []
 
 active_report = st.session_state.get("active_report")
 
@@ -103,27 +108,62 @@ if active_report:
     st.markdown("---")
     st.markdown(f"### 📈 Benchmark Results: `{active_report.get('run_id')}`")
 
+    results = active_report.get("results", [])
+
+    # KPI Stat Cards
+    if results:
+        best_recall = max(results, key=lambda r: r.get("retrieval_metrics", {}).get("recall_at_5", 0.0))
+        best_mrr = max(results, key=lambda r: r.get("retrieval_metrics", {}).get("mrr", 0.0))
+        fastest = min(results, key=lambda r: r.get("avg_latency_ms", 9999.0))
+        total_q = results[0].get("total_queries", 0)
+
+        kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+        with kpi1:
+            st.metric(
+                "Best Recall@5",
+                f"{best_recall.get('retrieval_metrics', {}).get('recall_at_5', 0.0):.4f}",
+                delta=best_recall.get("strategy", "").replace("_", " ").title(),
+            )
+        with kpi2:
+            st.metric(
+                "Best MRR",
+                f"{best_mrr.get('retrieval_metrics', {}).get('mrr', 0.0):.4f}",
+                delta=best_mrr.get("strategy", "").replace("_", " ").title(),
+            )
+        with kpi3:
+            st.metric(
+                "Lowest Avg Latency",
+                f"{fastest.get('avg_latency_ms', 0.0):.1f} ms",
+                delta=fastest.get("strategy", "").replace("_", " ").title(),
+            )
+        with kpi4:
+            st.metric(
+                "Evaluated Queries",
+                total_q,
+                delta="Ground Truth Tested",
+            )
+
     # Metadata Banner
     config = active_report.get("configuration", {})
     st.markdown(
         f"""
-        <div class="industrial-card" style="border-top: 3px solid #2563EB; padding: 16px 20px; margin-bottom: 12px;">
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; font-size: 13px; color: #334155; line-height: 1.5;">
+        <div class="industrial-card" style="border-top: 3px solid var(--accent-blue); padding: 14px 18px; margin: 12px 0;">
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; font-size: 13px; color: var(--text-primary); line-height: 1.5;">
                 <div>
                     <div><strong>Timestamp:</strong> <code>{active_report.get('timestamp')}</code></div>
                     <div style="margin-top: 4px;"><strong>Dataset Version:</strong> <code>{active_report.get('dataset_version')}</code></div>
                 </div>
                 <div>
                     <div><strong>Dataset Hash:</strong> <code>{active_report.get('dataset_hash', '')[:12]}...</code></div>
-                    <div style="margin-top: 4px;"><strong>Embedding:</strong> <code>{active_report.get('embedding_model')}</code></div>
+                    <div style="margin-top: 4px;"><strong>Embedding Model:</strong> <code>{active_report.get('embedding_model')}</code></div>
                 </div>
                 <div>
                     <div><strong>Reranker:</strong> <code>{active_report.get('reranker_model')}</code></div>
-                    <div style="margin-top: 4px;"><strong>LLM:</strong> <code>{active_report.get('llm_model')}</code></div>
+                    <div style="margin-top: 4px;"><strong>LLM Engine:</strong> <code>{active_report.get('llm_model')}</code></div>
                 </div>
                 <div>
                     <div><strong>Top-K / RRF k:</strong> <code>{config.get('top_k')}</code> / <code>{config.get('rrf_k')}</code></div>
-                    <div style="margin-top: 4px;"><strong>Chunk / Overlap:</strong> <code>{config.get('chunk_size')}</code> / <code>{config.get('chunk_overlap')}</code></div>
+                    <div style="margin-top: 4px;"><strong>Chunk Size / Overlap:</strong> <code>{config.get('chunk_size')}</code> / <code>{config.get('chunk_overlap')}</code></div>
                 </div>
             </div>
         </div>
@@ -132,7 +172,6 @@ if active_report:
     )
 
     # Strategy Results Table
-    results = active_report.get("results", [])
     table_rows = []
     for r in results:
         rm = r.get("retrieval_metrics", {})
@@ -146,8 +185,6 @@ if active_report:
             "nDCG@10": f"{rm.get('ndcg_at_10', 0.0):.4f}",
             "Faithfulness": f"{ragas.get('faithfulness'):.4f}" if ragas.get("faithfulness") is not None else "Not evaluated",
             "Answer Relevancy": f"{ragas.get('answer_relevancy'):.4f}" if ragas.get("answer_relevancy") is not None else "Not evaluated",
-            "Context Precision": f"{ragas.get('context_precision'):.4f}" if ragas.get("context_precision") is not None else "Not evaluated",
-            "Context Recall": f"{ragas.get('context_recall'):.4f}" if ragas.get("context_recall") is not None else "Not evaluated",
             "Avg Latency (ms)": f"{r.get('avg_latency_ms', 0.0):.1f}",
             "P95 Latency (ms)": f"{r.get('p95_latency_ms', 0.0):.1f}",
             "Passed Queries": f"{r.get('successful_queries', 0)}/{r.get('total_queries', 0)}",
@@ -155,19 +192,37 @@ if active_report:
 
     df_results = pd.DataFrame(table_rows)
     st.markdown("#### Comparative Strategy Metrics")
-    st.dataframe(df_results, use_container_width=True, hide_index=True)
+    st.dataframe(
+        df_results,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Strategy": st.column_config.TextColumn("Strategy", width="medium"),
+            "Recall@5": st.column_config.TextColumn("Recall@5", width="small"),
+            "Recall@10": st.column_config.TextColumn("Recall@10", width="small"),
+            "Precision@K": st.column_config.TextColumn("Precision@K", width="small"),
+            "MRR": st.column_config.TextColumn("MRR", width="small"),
+            "nDCG@10": st.column_config.TextColumn("nDCG@10", width="small"),
+            "Faithfulness": st.column_config.TextColumn("Faithfulness", width="small"),
+            "Answer Relevancy": st.column_config.TextColumn("Answer Relevancy", width="small"),
+            "Avg Latency (ms)": st.column_config.TextColumn("Avg Latency (ms)", width="small"),
+            "P95 Latency (ms)": st.column_config.TextColumn("P95 Latency (ms)", width="small"),
+            "Passed Queries": st.column_config.TextColumn("Passed Queries", width="small"),
+        },
+    )
 
-    # Interactive Charts
+    # Interactive Plotly Charts
     chart_col1, chart_col2 = st.columns(2)
+    chart_cfg = {"displayModeBar": "hover", "displaylogo": False, "responsive": True}
     with chart_col1:
         fig_metrics = render_benchmark_metrics_chart(results)
-        st.plotly_chart(fig_metrics, use_container_width=True)
+        st.plotly_chart(fig_metrics, use_container_width=True, config=chart_cfg)
 
     with chart_col2:
         fig_latency = render_latency_chart(results)
-        st.plotly_chart(fig_latency, use_container_width=True)
+        st.plotly_chart(fig_latency, use_container_width=True, config=chart_cfg)
 
-    # Download CSV Report
+    # Download CSV Report Button
     csv_data = df_results.to_csv(index=False).encode("utf-8")
     st.download_button(
         label="📥 Download Benchmark Report (CSV)",
@@ -175,4 +230,5 @@ if active_report:
         file_name=f"benchmark_{active_report.get('run_id')}.csv",
         mime="text/csv",
         use_container_width=True,
+        type="primary",
     )

@@ -51,6 +51,10 @@ class DocumentMetadata(BaseModel):
     machine_id: Optional[str] = None
     incident_type: Optional[str] = None
     incident_date: Optional[str] = None
+    incident_id: Optional[str] = None
+    facility: Optional[str] = None
+    severity_level: Optional[str] = None
+    lead_investigator: Optional[str] = None
     page_count: int = 1
     chunk_count: int = 0
     checksum_sha256: str
@@ -172,6 +176,61 @@ class InvestigationRequest(BaseModel):
     strategy: RetrievalStrategy = RetrievalStrategy.FULL_ADVANCED
     top_k: int = Field(default=5, ge=1, le=20)
     enable_rewriting: Optional[bool] = None
+
+
+# ---------------------------------------------------------------------------
+# Structured Document Analysis Schemas (Document-Driven Workflow)
+# ---------------------------------------------------------------------------
+
+class IncidentOverview(BaseModel):
+    """Structured high-level overview of an industrial incident report."""
+    incident_id: str = "Not specified"
+    machine_id: str = "Not specified"
+    machine_name: str = "Not specified"
+    incident_type: str = "Not specified"
+    incident_date: str = "Not specified"
+    facility: str = "Not specified"
+    severity_level: str = "Not specified"
+    lead_investigator: str = "Not specified"
+    status: str = "Not specified"
+    operational_impact: str = "Not specified"
+
+
+class TelemetryItem(BaseModel):
+    """Structured sensor reading, electrical parameter, or physical diagnostic measurement."""
+    parameter: str
+    measured_value: str
+    nominal_threshold: str = "Not specified"
+    status: str = "Observed"
+    interpretation: str = "Not specified"
+    citation_id: Optional[str] = "[CIT-1]"
+
+
+class TimelineEvent(BaseModel):
+    """Chronological event in the sequence of observations."""
+    timestamp: str
+    event: str
+    category: str = "Operational"
+
+
+class DocumentAnalysisResponse(BaseModel):
+    """Full structured forensic analysis of a selected or uploaded incident document."""
+    document_id: str
+    source_filename: str
+    incident_overview: IncidentOverview
+    executive_summary: str
+    timeline: List[TimelineEvent] = []
+    physical_observations: List[str] = []
+    telemetry: List[TelemetryItem] = []
+    root_causes: List[InvestigationHypothesis] = []
+    contributing_factors: List[str] = []
+    corrective_actions: List[str] = []
+    missing_evidence_and_limitations: List[str] = []
+    citations: List[EvidenceCitation] = []
+    diagnostics: Dict[str, Any] = {}
+    machine_id: Optional[str] = None
+    filename: Optional[str] = None
+
 
 
 # ---------------------------------------------------------------------------

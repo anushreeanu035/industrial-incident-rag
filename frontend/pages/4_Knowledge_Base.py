@@ -9,6 +9,7 @@ import pandas as pd
 import streamlit as st
 from frontend.components.api_client import api_client
 from frontend.components.sidebar import render_sidebar
+from frontend.components.theme import load_theme
 
 st.set_page_config(
     page_title="Knowledge Base Management - Incident Investigator",
@@ -16,12 +17,16 @@ st.set_page_config(
     layout="wide",
 )
 
-css_path = Path(__file__).resolve().parent.parent / "styles" / "theme.css"
-if css_path.exists():
-    with open(css_path, "r", encoding="utf-8") as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+# Load cached enterprise theme CSS
+load_theme()
 
-render_sidebar()
+render_sidebar(current_page="knowledge_base")
+
+# Top Navigation Bar
+col_back, _ = st.columns([1, 4])
+with col_back:
+    if st.button("← Return to Dashboard", key="btn_back_home_kb"):
+        st.switch_page("app.py")
 
 st.markdown(
     """
@@ -34,22 +39,23 @@ st.markdown(
 )
 
 # Document Upload Section
-st.markdown("### 📤 Upload New Incident Reports")
-st.caption("Supported file formats: **PDF (.pdf)**, **Markdown (.md)**, **Plain Text (.txt)**. Maximum file size: 25MB.")
+st.markdown("### 📤 Ingest New Incident Reports")
+st.caption("Supported technical formats: **PDF (.pdf)**, **Markdown (.md)**, **Plain Text (.txt)**. Maximum file size: 25 MB per file.")
 
 uploaded_files = st.file_uploader(
-    "Choose technical documents to ingest:",
+    "Choose technical documents to ingest into the knowledge base:",
     type=["pdf", "md", "txt", "markdown"],
     accept_multiple_files=True,
+    key="kb_files_uploader",
 )
 
 if uploaded_files:
-    if st.button("⚡ Process & Index Uploaded Documents", use_container_width=True):
+    if st.button("⚡ Process & Index Uploaded Documents", type="primary", use_container_width=True):
         progress_bar = st.progress(0)
         status_container = st.empty()
 
         for idx, file_obj in enumerate(uploaded_files, start=1):
-            status_container.info(f"Processing and chunking '{file_obj.name}'...")
+            status_container.info(f"Processing, chunking, and embedding '{file_obj.name}'...")
             try:
                 content_bytes = file_obj.read()
                 resp = api_client.upload_document(
@@ -66,13 +72,13 @@ if uploaded_files:
 
             progress_bar.progress(idx / len(uploaded_files))
 
-        status_container.success("Batch ingestion completed.")
+        status_container.success("Batch ingestion completed successfully.")
         st.rerun()
 
 st.divider()
 
 # Ingested Documents List
-st.markdown("### 📚 Indexed Incident Documents")
+st.markdown("### 📚 Indexed Incident Dossiers")
 
 try:
     documents = api_client.list_documents()
@@ -89,47 +95,71 @@ else:
     total_size_kb = sum(d.get("file_size_bytes", 0) for d in documents) / 1024.0
 
     with c1:
-        st.metric("Total Documents", len(documents))
+        st.metric("Total Indexed Reports", len(documents))
     with c2:
         st.metric("Total Vector Chunks", total_chunks)
     with c3:
         st.metric("Storage Volume", f"{total_size_kb:.1f} KB")
     with c4:
-        st.metric("Indexing Status", "100% Synced")
+        st.metric("Repository Status", "100% Synced", delta="Qdrant + BM25")
 
     # Documents Table
     doc_rows = []
     for d in documents:
         doc_rows.append({
             "Document ID": d.get("document_id"),
-            "Filename": d.get("filename"),
+            "Report Filename": d.get("filename"),
             "Machine ID": d.get("machine_id") or "Unassigned",
-            "Incident Type": d.get("incident_type") or "Unspecified",
-            "Date": d.get("incident_date") or "N/A",
+            "Incident Classification": d.get("incident_type") or "Unspecified",
+            "Incident Date": d.get("incident_date") or "N/A",
             "Format": d.get("file_type", "").upper(),
             "Chunks": d.get("chunk_count", 0),
             "Pages": d.get("page_count", 1),
             "Size (KB)": round(d.get("file_size_bytes", 0) / 1024.0, 1),
-            "SHA-256 (Prefix)": d.get("checksum_sha256", "")[:12] + "...",
+            "Checksum (SHA-256)": d.get("checksum_sha256", "")[:12] + "...",
             "Status": d.get("status", "unknown").upper(),
         })
 
     df_docs = pd.DataFrame(doc_rows)
-    st.dataframe(df_docs, use_container_width=True, hide_index=True)
+    st.dataframe(
+        df_docs,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Document ID": st.column_config.TextColumn("Doc ID", width="small"),
+            "Report Filename": st.column_config.TextColumn("Filename", width="medium"),
+            "Machine ID": st.column_config.TextColumn("Machine", width="small"),
+            "Incident Classification": st.column_config.TextColumn("Classification", width="medium"),
+            "Incident Date": st.column_config.TextColumn("Date", width="small"),
+            "Format": st.column_config.TextColumn("Format", width="small"),
+            "Chunks": st.column_config.NumberColumn("Chunks", width="small"),
+            "Pages": st.column_config.NumberColumn("Pages", width="small"),
+            "Size (KB)": st.column_config.NumberColumn("Size (KB)", width="small"),
+            "Checksum (SHA-256)": st.column_config.TextColumn("Checksum", width="small"),
+            "Status": st.column_config.TextColumn("Status", width="small"),
+        },
+    )
 
-    # Document Deletion and Detail Inspector
-    st.markdown("#### 🗑️ Document Management & Deletion")
-    col_sel, col_del = st.columns([3, 1], vertical_alignment="bottom")
+    # Document Actions: Inspect, Analyze Directly, or Delete
+    st.markdown("#### ⚙️ Document Management & Direct Actions")
+    col_sel, col_action_analyze, col_del = st.columns([2, 1, 1], vertical_alignment="bottom")
 
     with col_sel:
         doc_to_manage = st.selectbox(
-            "Select Document to Inspect or Remove:",
+            "Select Document:",
             options=documents,
-            format_func=lambda d: f"{d.get('filename')} (ID: {d.get('document_id')}, Machine: {d.get('machine_id')})",
+            format_func=lambda d: f"{d.get('filename')} (ID: {d.get('document_id')}, Machine: {d.get('machine_id') or 'N/A'})",
+            key="sb_manage_doc",
         )
 
+    with col_action_analyze:
+        if st.button("🔍 Analyze in Investigation →", key="btn_jump_to_inv", use_container_width=True, type="primary"):
+            if doc_to_manage:
+                st.session_state["selected_doc_id"] = doc_to_manage.get("document_id")
+                st.switch_page("pages/1_Investigation.py")
+
     with col_del:
-        if st.button("🗑️ Delete Selected Document", type="secondary", use_container_width=True):
+        if st.button("🗑️ Delete Document", key="btn_del_doc", type="secondary", use_container_width=True):
             if doc_to_manage:
                 doc_id = doc_to_manage.get("document_id")
                 try:
@@ -140,5 +170,5 @@ else:
                     st.error(f"Failed to delete document: {str(e)}")
 
     if doc_to_manage:
-        with st.expander(f"🔍 Provenance & Metadata Details for {doc_to_manage.get('filename')}", expanded=False):
+        with st.expander(f"🔍 Provenance & Metadata Details for `{doc_to_manage.get('filename')}`", expanded=False):
             st.json(doc_to_manage)

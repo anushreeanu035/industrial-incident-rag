@@ -1,5 +1,16 @@
 """Unified RAG pipeline orchestrating query rewriting, hybrid search, reranking, and generation."""
 
+import sys
+from pathlib import Path
+
+# Ensure package root ('src') and project root are in sys.path when executed directly or via IDE runner
+_src_dir = str(Path(__file__).resolve().parent.parent)
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
+_root_dir = str(Path(__file__).resolve().parent.parent.parent)
+if _root_dir not in sys.path:
+    sys.path.insert(0, _root_dir)
+
 import time
 from typing import List, Optional
 from incident_rag.config import get_settings
@@ -13,6 +24,7 @@ from incident_rag.retrieval.dense_search import DenseSearchEngine
 from incident_rag.retrieval.fusion import reciprocal_rank_fusion
 from incident_rag.retrieval.hybrid_search import HybridSearchEngine
 from incident_rag.schemas import (
+    DocumentAnalysisResponse,
     InvestigationRequest,
     InvestigationResponse,
     RetrievalRequest,
@@ -202,3 +214,46 @@ class IncidentRAGPipeline:
             retrieval_metadata=meta,
         )
         return response
+
+    def analyze_document(self, document_id: str) -> DocumentAnalysisResponse:
+        """Executes full structured forensic document analysis for a specific document."""
+        doc_meta = self.doc_store.get_document(document_id)
+        if not doc_meta:
+            for doc in self.doc_store.list_documents():
+                if (
+                    doc.filename == document_id
+                    or doc.filename.startswith(document_id)
+                    or (doc.incident_id and doc.incident_id == document_id)
+                    or (doc.machine_id and doc.machine_id == document_id)
+                ):
+                    doc_meta = doc
+                    document_id = doc.document_id
+                    break
+        if not doc_meta:
+            raise ValueError(f"Document '{document_id}' not found in knowledge base.")
+
+        chunks = []
+        if self.bm25_engine and self.bm25_engine.chunks:
+            chunks = [c for c in self.bm25_engine.chunks if c.document_id == document_id]
+            chunks.sort(key=lambda c: c.metadata.chunk_index)
+
+        full_text = None
+        raw_file = self.settings.resolve_path(f"data/raw/{doc_meta.filename}")
+        if raw_file.exists():
+            from incident_rag.ingestion.loader import load_file
+            loaded = load_file(raw_file)
+            full_text = loaded.full_text
+
+        if not chunks and raw_file.exists():
+            from incident_rag.ingestion.chunker import chunk_document
+            from incident_rag.ingestion.metadata import extract_metadata_from_text
+            meta = extract_metadata_from_text(full_text or loaded.full_text, raw_file.name)
+            chunks = chunk_document(
+                loaded,
+                chunk_size=self.settings.CHUNK_SIZE,
+                chunk_overlap=self.settings.CHUNK_OVERLAP,
+                extracted_meta=meta,
+            )
+
+        return self.generator.analyze_document(doc_meta, chunks, full_text=full_text)
+

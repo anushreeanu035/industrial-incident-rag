@@ -63,8 +63,7 @@ def build_investigation_context(
             last_space = truncated.rfind(" ")
             excerpt = (truncated[:last_space] if last_space > 180 else truncated) + "..."
 
-        score_repr = f"{item.rerank_score:.2f}" if item.rerank_score is not None else "N/A"
-        relevance_info = f"Retrieved rank #{item.final_rank} (Rerank score: {score_repr}{section_str})"
+        relevance_info = f"Retrieved rank #{item.final_rank} across hybrid ensemble{section_str}"
 
         citations.append(
             EvidenceCitation(

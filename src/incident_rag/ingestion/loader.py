@@ -44,13 +44,14 @@ def calculate_sha256(content_bytes: bytes) -> str:
     return hashlib.sha256(content_bytes).hexdigest()
 
 
-def load_file(file_path: Path) -> LoadedDocument:
+def load_file(file_path) -> LoadedDocument:
     """Loads a document from disk and extracts text and metadata."""
-    if not file_path.exists():
-        raise FileNotFoundError(f"File not found: {file_path}")
+    path = Path(file_path)
+    if not path.exists():
+        raise FileNotFoundError(f"File not found: {path}")
 
-    content_bytes = file_path.read_bytes()
-    return load_bytes(content_bytes, file_path.name)
+    content_bytes = path.read_bytes()
+    return load_bytes(content_bytes, path.name)
 
 
 def load_bytes(content_bytes: bytes, filename: str) -> LoadedDocument:

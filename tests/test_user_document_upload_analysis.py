@@ -300,3 +300,131 @@ def test_api_client_forwards_document_id_filter():
     sig_ret = inspect.signature(client_instance.retrieve)
     assert "document_id_filter" in sig_ret.parameters
     assert sig_ret.parameters["document_id_filter"].default is None
+
+    # Check that analyze_document signature exists and takes document_id
+    sig_ana = inspect.signature(client_instance.analyze_document)
+    assert "document_id" in sig_ana.parameters
+
+
+# ---------------------------------------------------------------------------
+# 6. Document-Driven Analysis Workflow Tests
+# ---------------------------------------------------------------------------
+
+def test_api_analyze_document_endpoint_m301(client: TestClient):
+    """Verifies that POST /api/v1/documents/{doc_id}/analyze performs isolated document analysis on M-301."""
+    # Find M-301 document in document store
+    docs_resp = client.get("/api/v1/documents")
+    assert docs_resp.status_code == 200
+    docs = docs_resp.json()
+    m301_doc = next((d for d in docs if "INC-2023-044" in d["filename"]), None)
+    assert m301_doc is not None, "M-301 document must be present in document store"
+
+    resp = client.post(f"/api/v1/documents/{m301_doc['document_id']}/analyze")
+    assert resp.status_code == 200
+    data = resp.json()
+
+    assert data["document_id"] == m301_doc["document_id"]
+    assert data["filename"] == m301_doc["filename"]
+    assert data["machine_id"] == "M-301"
+
+    # Verify structured sections
+    assert "incident_overview" in data
+    assert data["incident_overview"]["machine_id"] == "M-301"
+    assert "executive_summary" in data
+    assert len(data["executive_summary"]) > 0
+
+    # Verify telemetry
+    assert "telemetry" in data
+    assert len(data["telemetry"]) > 0
+
+    # Verify root causes
+    assert "root_causes" in data
+    assert len(data["root_causes"]) > 0
+    # Root cause should mention thermal overload or grease/cooling, NOT HP-17 turbine vibration
+    rc_text = " ".join(rc["hypothesis"] for rc in data["root_causes"]).lower()
+    assert "turbine" not in rc_text
+    assert "hp-17" not in rc_text
+
+    # Verify corrective actions and citations
+    assert "corrective_actions" in data
+    assert len(data["corrective_actions"]) > 0
+    assert "citations" in data
+    assert len(data["citations"]) > 0
+    assert any("M-301" in (c["excerpt"] or "") or "overheating" in (c["excerpt"] or "").lower() for c in data["citations"])
+
+
+def test_api_analyze_nonexistent_document(client: TestClient):
+    """Verifies 404 error when analyzing nonexistent document ID."""
+    resp = client.post("/api/v1/documents/doc_nonexistent_id_9999/analyze")
+    assert resp.status_code == 404
+
+
+def test_generate_document_analysis_markdown():
+    """Verifies formatting of structured 8-part document analysis markdown report."""
+    from frontend.components.evidence_cards import generate_document_analysis_markdown
+
+    analysis = {
+        "document_id": "doc_test_123",
+        "filename": "INC-2023-044_conveyor_motor_overheating.md",
+        "machine_id": "M-301",
+        "overview": {
+            "incident_id": "INC-2023-044",
+            "machine_id": "M-301",
+            "incident_type": "Electrical Motor Thermal Overload",
+            "incident_date": "2023-11-05",
+            "facility": "Yard Conveyor 3",
+            "severity_level": "Tier 2",
+            "lead_investigator": "J. O'Connor",
+        },
+        "executive_summary": "Motor tripped on thermal overload after stator temperature hit 148 C.",
+        "timeline": [
+            {"timestamp": "14:15", "event": "Stator temperature exceeded 130 C alarm threshold"}
+        ],
+        "telemetry_and_observations": [
+            {
+                "parameter": "Stator Winding Temp",
+                "measured_value": "148 deg C",
+                "nominal_range": "< 120 deg C",
+                "status": "CRITICAL",
+                "is_measured": True,
+            }
+        ],
+        "root_causes": [
+            {
+                "hypothesis": "Cooling fin blockage by coal dust slurry combined with grease degradation",
+                "likelihood": "Documented Fact",
+                "reasoning": "Airflow obstruction caused heat accumulation",
+            }
+        ],
+        "contributing_factors": [
+            "High ambient summer heat wave",
+            "Skipped PM cycle on motor washdown",
+        ],
+        "corrective_actions": [
+            "Clean motor enclosure and restore airflow",
+            "Re-grease bearings with Kluberplex high-temp grease",
+        ],
+        "missing_evidence_and_uncertainties": [
+            "Current sensor CT-2 calibration records unavailable during inspection"
+        ],
+        "citations": [
+            {
+                "citation_id": "[CIT-1]",
+                "document_id": "doc_test_123",
+                "chunk_id": "chunk_0",
+                "source_name": "INC-2023-044_conveyor_motor_overheating.md",
+                "page_number": 1,
+                "excerpt": "Motor M-301 tripped on thermal overload relay 49...",
+            }
+        ],
+    }
+
+    md = generate_document_analysis_markdown(analysis)
+    assert "# Forensic Document Analysis Report" in md
+    assert "M-301" in md
+    assert "INC-2023-044" in md
+    assert "148 deg C" in md
+    assert "Kluberplex" in md
+    assert "## 9. Evidence & Citations" in md
+    assert "[CIT-1]" in md
+

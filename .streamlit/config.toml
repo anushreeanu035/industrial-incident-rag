@@ -2,9 +2,13 @@
 headless = true
 enableCORS = false
 enableXsrfProtection = false
+enableWebsocketCompression = false
+
+[browser]
+gatherUsageStats = false
 
 [theme]
-primaryColor = "#1e88e5"
-backgroundColor = "#ffffff"
-secondaryBackgroundColor = "#f8fafc"
+primaryColor = "#2563eb"
+backgroundColor = "#f8fafc"
+secondaryBackgroundColor = "#ffffff"
 textColor = "#1e293b"

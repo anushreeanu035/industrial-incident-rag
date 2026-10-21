@@ -47,3 +47,4 @@ def render_retrieval_stats(stats: Dict[str, Any]):
         st.metric("Final Passages", stats.get("final_passages", 0))
     with c4:
         st.metric("Latency", f"{stats.get('latency_ms', 0):.1f} ms")
+

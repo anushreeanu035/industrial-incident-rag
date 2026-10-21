@@ -1,7 +1,17 @@
 """FastAPI application for the Industrial Incident Investigator."""
 
-from contextlib import asynccontextmanager
+import sys
 from pathlib import Path
+
+# Ensure package root ('src') and project root are in sys.path when executed directly or via IDE runner
+_src_dir = str(Path(__file__).resolve().parent.parent)
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
+_root_dir = str(Path(__file__).resolve().parent.parent.parent)
+if _root_dir not in sys.path:
+    sys.path.insert(0, _root_dir)
+
+from contextlib import asynccontextmanager
 import time
 from typing import Any, Dict, List, Optional
 import uuid
@@ -28,6 +38,7 @@ from incident_rag.logging_config import configure_logging, get_logger
 from incident_rag.pipeline import IncidentRAGPipeline
 from incident_rag.schemas import (
     BenchmarkReport,
+    DocumentAnalysisResponse,
     DocumentMetadata,
     DocumentUploadResponse,
     EvaluationRunRequest,
@@ -190,6 +201,30 @@ async def delete_document(
     if not success:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
     return {"message": f"Document '{document_id}' successfully removed from knowledge base."}
+
+
+@app.post(
+    "/api/v1/documents/{document_id}/analyze",
+    response_model=DocumentAnalysisResponse,
+    tags=["Documents", "Investigation"],
+)
+async def analyze_document(
+    document_id: str,
+    pipeline: IncidentRAGPipeline = Depends(get_rag_pipeline),
+):
+    """Executes structured document-driven forensic investigation for a selected incident report."""
+    try:
+        response = pipeline.analyze_document(document_id)
+        return response
+    except ValueError as ve:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(ve))
+    except Exception as e:
+        logger.error(f"Error during document analysis of '{document_id}': {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Document analysis failed: {str(e)}",
+        )
+
 
 
 # ---------------------------------------------------------------------------
