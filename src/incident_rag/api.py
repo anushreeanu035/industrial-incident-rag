@@ -324,3 +324,12 @@ async def get_system_settings(settings: Settings = Depends(get_settings)):
         "num_query_rewrites": settings.NUM_QUERY_REWRITES,
         "environment": settings.ENVIRONMENT,
     }
+
+
+if __name__ == "__main__":
+    import os
+    import uvicorn
+
+    host = os.environ.get("FASTAPI_HOST", "0.0.0.0")
+    port = int(os.environ.get("PORT", os.environ.get("FASTAPI_PORT", 8000)))
+    uvicorn.run("incident_rag.api:app", host=host, port=port, reload=False)

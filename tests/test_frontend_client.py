@@ -53,3 +53,34 @@ def test_api_client_investigate():
         assert inv["is_sufficient_evidence"] is True
         assert len(inv["citations"]) == 1
 
+
+def test_api_client_health_check_alias():
+    client = APIClient(base_url="http://127.0.0.1:8000")
+    with patch("httpx.Client.get") as mock_get:
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"status": "healthy"}
+        mock_resp.status_code = 200
+        mock_get.return_value = mock_resp
+
+        health = client.health_check()
+        assert health["status"] == "healthy"
+
+
+def test_api_client_dynamic_url_resolution(monkeypatch):
+    import os
+    from frontend.components.api_client import APIClient, get_configured_backend_url
+
+    # Test environment variable resolution
+    monkeypatch.setenv("BACKEND_URL", "https://incident-api.onrender.com/")
+    assert get_configured_backend_url() == "https://incident-api.onrender.com"
+
+    client = APIClient()
+    assert client.base_url == "https://incident-api.onrender.com"
+
+    # Test Streamlit secrets resolution
+    mock_secrets = {"BACKEND_URL": "https://custom-cloud.onrender.com"}
+    with patch("streamlit.secrets", mock_secrets, create=True):
+        assert get_configured_backend_url() == "https://custom-cloud.onrender.com"
+        client = APIClient()
+        assert client.base_url == "https://custom-cloud.onrender.com"
+

@@ -43,7 +43,14 @@ try:
     settings_data = api_client.get_settings()
 except Exception as e:
     settings_data = {}
-    st.error(f"Failed to fetch system settings from backend: {str(e)}")
+    if not is_healthy:
+        st.warning(
+            f"⚠️ **FastAPI Backend is unreachable at `{api_client.base_url}`.**\n\n"
+            "If running on **Streamlit Community Cloud**, deploy your FastAPI backend to a cloud host "
+            "(e.g., Render) and add `BACKEND_URL = \"https://your-backend.onrender.com\"` to your Streamlit Cloud Secrets."
+        )
+    else:
+        st.error(f"Failed to fetch system settings from backend: {str(e)}")
 
 # System Status Overview
 st.markdown("### 🖥️ Backend Service Status")
@@ -51,12 +58,15 @@ c1, c2, c3, c4 = st.columns(4)
 with c1:
     status_color = "#16A34A" if is_healthy else "#DC2626"
     status_label = "ONLINE / READY" if is_healthy else "OFFLINE"
+    display_url = api_client.base_url
+    if len(display_url) > 28:
+        display_url = display_url[:25] + "..."
     st.markdown(
         f"""
         <div class="stat-card">
             <span class="label">FastAPI Backend</span>
             <span class="value" style="color: {status_color}; font-size: 19px;">{status_label}</span>
-            <span class="delta">Port 8000 &bull; REST API</span>
+            <span class="delta" title="{api_client.base_url}">{display_url}</span>
         </div>
         """,
         unsafe_allow_html=True,

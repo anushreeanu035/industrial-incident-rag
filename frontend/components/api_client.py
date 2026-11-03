@@ -5,26 +5,77 @@ import time
 from typing import Any, Dict, List, Optional
 import httpx
 
-DEFAULT_BACKEND_URL = os.environ.get("BACKEND_URL", "http://127.0.0.1:8000")
+def get_configured_backend_url() -> str:
+    """Dynamically resolves backend API URL from Streamlit secrets, environment variables, or fallback."""
+    # 1. Streamlit Secrets (for Streamlit Community Cloud and local .streamlit/secrets.toml)
+    try:
+        import streamlit as st
+        if hasattr(st, "secrets"):
+            for key in ("BACKEND_URL", "backend_url", "API_URL", "api_url"):
+                if key in st.secrets and st.secrets[key]:
+                    val = str(st.secrets[key]).strip().rstrip("/")
+                    if val:
+                        return val
+    except Exception:
+        pass
+
+    # 2. Environment Variables (.env, container env, system)
+    for key in ("BACKEND_URL", "backend_url", "API_URL", "api_url"):
+        val = os.environ.get(key)
+        if val and val.strip():
+            return val.strip().rstrip("/")
+
+    # 3. Default fallback for local development
+    return "http://127.0.0.1:8000"
+
+
+DEFAULT_BACKEND_URL = get_configured_backend_url()
 
 
 class APIClient:
     """High-performance client with connection pooling and intelligent caching."""
 
-    def __init__(self, base_url: str = DEFAULT_BACKEND_URL):
-        self.base_url = base_url.rstrip("/")
+    def __init__(self, base_url: Optional[str] = None):
+        self._explicit_base_url = base_url.rstrip("/") if base_url else None
         self._client: Optional[httpx.Client] = None
+        self._active_url: Optional[str] = None
         self._cache: Dict[str, Any] = {}
         self._cache_timestamps: Dict[str, float] = {}
 
+    @property
+    def base_url(self) -> str:
+        """Returns active backend base URL, resolving dynamically from secrets/env if not manually specified."""
+        if self._explicit_base_url:
+            return self._explicit_base_url
+        return get_configured_backend_url()
+
+    @base_url.setter
+    def base_url(self, url: Optional[str]) -> None:
+        """Allows dynamically overriding backend URL at runtime."""
+        self._explicit_base_url = url.rstrip("/") if url else None
+        if self._client and not self._client.is_closed:
+            try:
+                self._client.close()
+            except Exception:
+                pass
+            self._client = None
+            self._active_url = None
+
     def _get_client(self) -> httpx.Client:
         """Returns or lazily creates a persistent connection-pooled HTTP client."""
-        if self._client is None or self._client.is_closed:
+        target_url = self.base_url
+        if self._client is None or self._client.is_closed or self._active_url != target_url:
+            if self._client and not self._client.is_closed:
+                try:
+                    self._client.close()
+                except Exception:
+                    pass
             self._client = httpx.Client(
-                base_url=self.base_url,
-                timeout=httpx.Timeout(connect=3.0, read=60.0, write=60.0, pool=10.0),
+                base_url=target_url,
+                timeout=httpx.Timeout(connect=15.0, read=120.0, write=60.0, pool=15.0),
                 limits=httpx.Limits(max_keepalive_connections=15, max_connections=25, keepalive_expiry=60.0),
             )
+            self._active_url = target_url
         return self._client
 
     def _get(self, endpoint: str, timeout: float = 10.0) -> Dict[str, Any]:
@@ -34,9 +85,20 @@ class APIClient:
             res = client.get(endpoint, timeout=timeout)
             res.raise_for_status()
             return res.json()
+        except httpx.ConnectTimeout:
+            self._client = None
+            raise ConnectionError(
+                f"Connection timed out while reaching backend at {self.base_url}. "
+                f"If hosted on a free cloud platform (e.g. Render free tier), the instance may be waking up from sleep. "
+                f"Please wait a few seconds and retry."
+            )
         except httpx.ConnectError:
             self._client = None
-            raise ConnectionError(f"Unable to connect to backend at {self.base_url}. Ensure FastAPI is running.")
+            raise ConnectionError(
+                f"Unable to connect to backend at {self.base_url}. "
+                f"If running on Streamlit Cloud, verify that the FastAPI backend is deployed and "
+                f"BACKEND_URL is set in your Streamlit Cloud app secrets."
+            )
         except httpx.HTTPStatusError as e:
             raise ValueError(f"Backend error ({e.response.status_code}): {e.response.text}")
         except Exception:
@@ -50,9 +112,20 @@ class APIClient:
             res = client.post(endpoint, json=json_data, timeout=timeout)
             res.raise_for_status()
             return res.json()
+        except httpx.ConnectTimeout:
+            self._client = None
+            raise ConnectionError(
+                f"Connection timed out while reaching backend at {self.base_url}. "
+                f"If hosted on a free cloud platform (e.g. Render free tier), the instance may be waking up from sleep. "
+                f"Please wait a few seconds and retry."
+            )
         except httpx.ConnectError:
             self._client = None
-            raise ConnectionError(f"Unable to connect to backend at {self.base_url}. Ensure FastAPI is running.")
+            raise ConnectionError(
+                f"Unable to connect to backend at {self.base_url}. "
+                f"If running on Streamlit Cloud, verify that the FastAPI backend is deployed and "
+                f"BACKEND_URL is set in your Streamlit Cloud app secrets."
+            )
         except httpx.HTTPStatusError as e:
             raise ValueError(f"Backend error ({e.response.status_code}): {e.response.text}")
         except Exception:
@@ -81,6 +154,10 @@ class APIClient:
         self._cache[cache_key] = data
         self._cache_timestamps[cache_key] = now
         return data
+
+    def health_check(self, ttl: float = 10.0) -> Dict[str, Any]:
+        """Alias for check_health to support callers using health_check()."""
+        return self.check_health(ttl=ttl)
 
     def get_settings(self, ttl: float = 60.0) -> Dict[str, Any]:
         """Returns backend settings with 60s memory caching."""

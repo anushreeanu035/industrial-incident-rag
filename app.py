@@ -73,6 +73,22 @@ def _get_python_exe():
 
 def _ensure_backend_running(host="127.0.0.1", port=8000):
     """Starts FastAPI in background if not already active (essential for single-container deploys like Streamlit Cloud)."""
+    # Check if a remote backend URL is configured
+    backend_url = os.environ.get("BACKEND_URL", "").strip()
+    try:
+        import streamlit as st
+        if hasattr(st, "secrets"):
+            for k in ("BACKEND_URL", "backend_url", "API_URL", "api_url"):
+                if k in st.secrets and str(st.secrets[k]).strip():
+                    backend_url = str(st.secrets[k]).strip()
+                    break
+    except Exception:
+        pass
+
+    # If backend URL points to a remote cloud host, skip spawning local backend
+    if backend_url and not any(local in backend_url for local in ("127.0.0.1", "localhost", "0.0.0.0")):
+        return
+
     health_url = f"http://{host}:{port}/health"
     if not _wait_for_backend(health_url, max_retries=1, delay=0.1):
         cmd = [

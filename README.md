@@ -328,3 +328,50 @@ Results are automatically saved to `reports/` in both JSON and CSV formats (e.g.
 - **Prompt Injection Neutralization**: The context builder scrubs pattern overrides (e.g., `ignore previous instructions`) and treats documents strictly as untrusted data.
 - **Upload Hardening**: File type whitelisting (`.pdf`, `.md`, `.txt`) and 25MB maximum size restrictions.
 - **Resilient Fallback**: Graceful degradation to extractive synthesis and rule-based query expansion if network or external model providers become unavailable.
+
+---
+
+## ☁️ Cloud Deployment (Render + Streamlit Community Cloud)
+
+To run the decoupled full-stack architecture in the cloud:
+
+```
+[ Streamlit Community Cloud ]  ─── HTTPS (BACKEND_URL) ───►  [ Render Web Service ]
+   (.streamlit.app Frontend)                                    (FastAPI REST Backend)
+```
+
+### 1. Deploy the FastAPI Backend to Render
+
+1. Push your repository to GitHub.
+2. Sign in to [Render](https://dashboard.render.com/) and click **New +** -> **Web Service** (or use **Blueprints** with `render.yaml`).
+3. Connect your GitHub repository (`industrial-incident-rag`).
+4. Configure the Web Service settings:
+   - **Environment**: `Python 3`
+   - **Region**: Any (e.g. Oregon or Frankfurt)
+   - **Branch**: `main`
+   - **Build Command**:
+     ```bash
+     pip install --upgrade pip && pip install torch --index-url https://download.pytorch.org/whl/cpu && pip install -r requirements.txt
+     ```
+   - **Start Command**:
+     ```bash
+     uvicorn incident_rag.api:app --host 0.0.0.0 --port $PORT --app-dir src
+     ```
+5. In **Environment Variables**, add:
+   - `GROQ_API_KEY`: *Your Groq API key*
+   - `ENVIRONMENT`: `production`
+6. Click **Deploy Web Service**. Once deployed, copy your public service URL (e.g., `https://industrial-incident-backend.onrender.com`).
+
+> [!NOTE]
+> On Render's Free Tier, services spin down after 15 minutes of inactivity. When a new request arrives, it may take 30–50 seconds for the container to wake up.
+
+### 2. Configure Streamlit Community Cloud Secrets
+
+1. Open your app on [Streamlit Community Cloud](https://share.streamlit.io/).
+2. Click **App Settings** (gear icon or the three dots `⋮` at the bottom right) -> **Secrets**.
+3. Add your public backend URL:
+   ```toml
+   BACKEND_URL = "https://industrial-incident-backend.onrender.com"
+   ```
+4. Click **Save**. The Streamlit app will automatically reload and connect to your cloud FastAPI backend!
+
