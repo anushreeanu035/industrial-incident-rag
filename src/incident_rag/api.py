@@ -20,7 +20,7 @@ import uuid
 
 from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 
 from incident_rag import __version__
 from incident_rag.config import Settings, get_settings
@@ -147,8 +147,14 @@ async def add_request_id_and_logging(request: Request, call_next):
 
 
 # ---------------------------------------------------------------------------
-# Health & Status
+# Root & Health Status
 # ---------------------------------------------------------------------------
+
+@app.get("/", include_in_schema=False)
+async def root():
+    """Redirects root URL visitors to interactive Swagger API documentation."""
+    return RedirectResponse(url="/docs")
+
 
 @app.get("/health", tags=["System"])
 async def health_check(
