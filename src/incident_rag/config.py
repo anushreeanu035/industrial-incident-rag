@@ -3,6 +3,7 @@
 import os
 from functools import lru_cache
 from pathlib import Path
+from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 
@@ -35,6 +36,7 @@ class Settings(BaseSettings):
     DOCUMENT_STORE_PATH: str = Field(default="data/processed/documents.json", description="Path to metadata store")
     BENCHMARK_DATASET_PATH: str = Field(default="data/benchmark/retrieval_benchmark.json", description="Benchmark dataset path")
     REPORTS_DIR: str = Field(default="reports", description="Directory where benchmark evaluation reports are written")
+    AUTO_SEED_DATA: bool = Field(default=False, description="Enable automatic knowledge-base seeding on startup")
 
     # Chunking parameters
     CHUNK_SIZE: int = Field(default=400, description="Target chunk size in words/tokens")
@@ -44,6 +46,7 @@ class Settings(BaseSettings):
     DENSE_TOP_K: int = Field(default=10, ge=1, le=50, description="Top K results from dense retrieval")
     BM25_TOP_K: int = Field(default=10, ge=1, le=50, description="Top K results from BM25 retrieval")
     RRF_K: int = Field(default=60, ge=1, description="RRF constant k (standard is 60)")
+    ENABLE_RERANKER: bool = Field(default=False, description="Enable CrossEncoder neural reranker; when False, uses RRF fallback without loading model weights")
     RERANK_TOP_K: int = Field(default=5, ge=1, le=20, description="Top K candidates passed to cross-encoder")
     FINAL_CONTEXT_K: int = Field(default=5, ge=1, le=20, description="Final context chunks for LLM generation")
 
@@ -54,7 +57,14 @@ class Settings(BaseSettings):
     # Server & Client
     FASTAPI_HOST: str = Field(default="127.0.0.1", description="FastAPI host")
     FASTAPI_PORT: int = Field(default=8000, description="FastAPI port")
+    PORT: Optional[int] = Field(default=None, description="Port assigned by cloud provider (Render, Railway, etc.)")
     BACKEND_URL: str = Field(default="http://127.0.0.1:8000", description="Backend URL used by frontend")
+
+    # Memory and Inference Constraints
+    EMBEDDING_BATCH_SIZE: int = Field(default=2, ge=1, le=32, description="Max batch size for embeddings to strictly conserve memory")
+    EMBEDDING_DIM: int = Field(default=384, ge=64, description="Default embedding dimension for vector store")
+    MAX_CONCURRENT_UPLOADS: int = Field(default=1, ge=1, le=5, description="Max concurrent document uploads permitted to prevent memory spikes on 512MB RAM")
+    MAX_UPLOAD_SIZE_MB: int = Field(default=25, ge=1, le=50, description="Max upload file size in megabytes")
 
     # Logging & Environment
     LOG_LEVEL: str = Field(default="INFO", description="Logging level")

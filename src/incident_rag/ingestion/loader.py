@@ -63,6 +63,7 @@ def load_bytes(content_bytes: bytes, filename: str) -> LoadedDocument:
     pages: List[ExtractedPage] = []
 
     if suffix == ".pdf":
+        doc = None
         try:
             doc = pymupdf.open(stream=content_bytes, filetype="pdf")
             for page_idx in range(len(doc)):
@@ -70,10 +71,15 @@ def load_bytes(content_bytes: bytes, filename: str) -> LoadedDocument:
                 page_text = clean_text(page.get_text("text"))
                 if page_text:
                     pages.append(ExtractedPage(page_number=page_idx + 1, text=page_text))
-            doc.close()
         except Exception as e:
             logger.error(f"Failed to extract text from PDF {filename}: {e}")
             raise ValueError(f"Corrupt or unreadable PDF document '{filename}': {str(e)}")
+        finally:
+            if doc is not None:
+                try:
+                    doc.close()
+                except Exception:
+                    pass
 
         if not pages:
             raise ValueError(f"PDF document '{filename}' contains no extractable text.")

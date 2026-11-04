@@ -12,6 +12,8 @@ if _root_dir not in sys.path:
     sys.path.insert(0, _root_dir)
 
 from contextlib import asynccontextmanager
+import asyncio
+import os
 import time
 from typing import Any, Dict, List, Optional
 import uuid
@@ -31,11 +33,19 @@ from incident_rag.dependencies import (
     get_rag_pipeline,
     get_vector_store,
 )
+from incident_rag.embeddings.encoder import get_embedding_encoder
 from incident_rag.evaluation.benchmark_runner import BenchmarkRunner
 from incident_rag.evaluation.reports import save_benchmark_report
 from incident_rag.ingestion.service import IngestionService
 from incident_rag.logging_config import configure_logging, get_logger
+from incident_rag.mem_utils import (
+    configure_runtime_memory_limits,
+    get_process_memory_mb,
+    get_upload_limiter,
+    trim_memory,
+)
 from incident_rag.pipeline import IncidentRAGPipeline
+from incident_rag.reranking import get_cross_encoder_reranker
 from incident_rag.schemas import (
     BenchmarkReport,
     DocumentAnalysisResponse,
@@ -57,25 +67,50 @@ logger = get_logger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initializes stores and seeds raw documents if knowledge base is empty."""
-    settings = get_settings()
-    logger.info("Initializing Industrial Incident Investigator API...")
+    """Initializes storage and runtime configurations with immediate, non-blocking port binding."""
+    configure_runtime_memory_limits()
+    start_rss = get_process_memory_mb()
+    logger.info(f"Initializing Industrial Incident Investigator API... (Initial RSS: {start_rss:.1f} MB)")
 
-    # Pre-warm stores and pipeline
+    # Pre-warm metadata and persistent disk stores (BM25, document store, vector client)
+    # These lightweight disk/metadata operations execute in milliseconds without loading heavy ML models
     doc_store = get_document_store()
-    ingestion_service = get_ingestion_service()
+    get_vector_store()
+    get_bm25_engine()
 
-    # Automatically index sample incident reports if database is empty
-    if len(doc_store.list_documents()) == 0:
-        raw_dir = settings.resolve_path("data/raw")
-        if raw_dir.exists():
-            logger.info(f"Seeding knowledge base from {raw_dir}...")
-            ingestion_service.ingest_directory(raw_dir)
-            logger.info(f"Seeding completed. Total indexed documents: {len(doc_store.list_documents())}")
+    ready_rss = get_process_memory_mb()
+    logger.info(f"FastAPI storage ready to bind port. (RSS: {ready_rss:.1f} MB)")
+
+    settings = get_settings()
+    if settings.AUTO_SEED_DATA:
+        # Non-blocking background seeding if explicitly enabled in configuration.
+        # Uses asyncio.to_thread to avoid blocking the event loop on heavy synchronous work.
+        async def _seed_background_kb():
+            await asyncio.sleep(2.0)
+            try:
+                if len(doc_store.list_documents()) == 0:
+                    raw_dir = settings.resolve_path("data/raw")
+                    if raw_dir.exists():
+                        logger.info(f"Starting background knowledge base seeding from {raw_dir}...")
+                        ingestion_service = get_ingestion_service()
+                        await asyncio.to_thread(ingestion_service.ingest_directory, raw_dir)
+                        trim_memory()
+                        logger.info(
+                            f"Background seeding finished. Total indexed documents: {len(doc_store.list_documents())} "
+                            f"(RSS: {get_process_memory_mb():.1f} MB)"
+                        )
+            except Exception as e:
+                logger.warning(f"Background seeding encountered non-fatal error: {e}. API remains fully responsive.")
+                trim_memory()
+
+        asyncio.create_task(_seed_background_kb())
+    else:
+        logger.info("Automatic background knowledge base seeding is disabled (AUTO_SEED_DATA=False).")
 
     yield
 
     logger.info("Shutting down Industrial Incident Investigator API.")
+    trim_memory()
 
 
 app = FastAPI(
@@ -121,7 +156,13 @@ async def health_check(
     doc_store: DocumentStore = Depends(get_document_store),
     vec_store: VectorStore = Depends(get_vector_store),
 ):
-    """System health check and loaded resources report."""
+    """System health check and loaded resources report.
+    
+    Guarantees lightweight execution: never initializes or forces loading of ML models.
+    """
+    encoder = get_embedding_encoder()
+    reranker = get_cross_encoder_reranker()
+    current_rss = get_process_memory_mb()
     return {
         "status": "healthy",
         "version": __version__,
@@ -129,8 +170,14 @@ async def health_check(
         "indexed_documents": len(doc_store.list_documents()),
         "indexed_chunks": vec_store.count_chunks(),
         "embedding_model": settings.EMBEDDING_MODEL,
+        "embedding_model_loaded": encoder.is_loaded,
+        "embedding_batch_size": getattr(settings, "EMBEDDING_BATCH_SIZE", 2),
         "reranker_model": settings.RERANKER_MODEL,
+        "reranker_enabled": reranker.is_enabled,
+        "reranker_model_loaded": reranker.is_loaded,
+        "auto_seed_data": settings.AUTO_SEED_DATA,
         "groq_configured": bool(settings.GROQ_API_KEY.strip()),
+        "process_memory_mb": current_rss,
     }
 
 
@@ -143,37 +190,86 @@ async def upload_document(
     file: UploadFile = File(...),
     ingestion_service: IngestionService = Depends(get_ingestion_service),
 ):
-    """Uploads and indexes an incident report (PDF, Markdown, or TXT). Max size: 25MB."""
-    allowed_extensions = {".pdf", ".md", ".txt", ".markdown"}
-    ext = Path(file.filename).suffix.lower()
-    if ext not in allowed_extensions:
+    """Uploads and indexes an incident report (PDF, Markdown, or TXT). Max size: 25MB.
+    
+    Protected by an atomic upload concurrency limiter to eliminate check-then-acquire
+    race conditions and enforce strict single-upload isolation on Render Free (512MB RAM).
+    """
+    settings = get_settings()
+    limiter = get_upload_limiter(max_concurrent=settings.MAX_CONCURRENT_UPLOADS)
+    # Atomic non-blocking acquisition: eliminates check-then-acquire race conditions
+    if not limiter.try_acquire():
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unsupported file format '{ext}'. Supported formats: .pdf, .md, .txt",
-        )
-
-    # Max 25 MB limit
-    MAX_FILE_SIZE = 25 * 1024 * 1024
-    content = await file.read()
-    if len(content) == 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Uploaded file '{file.filename}' is empty.",
-        )
-    if len(content) > MAX_FILE_SIZE:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail="File size exceeds maximum permitted limit of 25MB.",
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=(
+                "Upload concurrency limit reached. The server is currently processing another document upload "
+                "to protect memory limits on the 512 MB tier. Please retry in a few moments."
+            ),
+            headers={"Retry-After": "5"},
         )
 
     try:
-        result = ingestion_service.ingest_bytes(content, file.filename, force_reindex=True)
+        allowed_extensions = {".pdf", ".md", ".txt", ".markdown"}
+        ext = Path(file.filename).suffix.lower()
+        if ext not in allowed_extensions:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unsupported file format '{ext}'. Supported formats: .pdf, .md, .txt",
+            )
+
+        max_mb = getattr(settings, "MAX_UPLOAD_SIZE_MB", 10)
+        max_file_size = max_mb * 1024 * 1024
+        READ_CHUNK_SIZE = 64 * 1024  # 64 KB streaming buffer
+
+        chunks: List[bytes] = []
+        total_bytes = 0
+
+        while True:
+            chunk = await file.read(READ_CHUNK_SIZE)
+            if not chunk:
+                break
+            total_bytes += len(chunk)
+            if total_bytes > max_file_size:
+                # Stop reading immediately and free chunk buffers to prevent memory bloat
+                del chunks
+                raise HTTPException(
+                    status_code=getattr(status, "HTTP_413_CONTENT_TOO_LARGE", 413),
+                    detail=f"File size exceeds maximum permitted limit of {max_mb}MB.",
+                )
+            chunks.append(chunk)
+
+        if total_bytes == 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Uploaded file '{file.filename}' is empty.",
+            )
+
+        content = b"".join(chunks)
+        del chunks
+
+        # Offload synchronous CPU/embedding ingestion to thread to keep the asyncio event loop responsive
+        result = await asyncio.to_thread(
+            ingestion_service.ingest_bytes, content, file.filename, force_reindex=True
+        )
         return result
+    except HTTPException:
+        # Re-raise HTTP exceptions (400, 413, etc.) directly; finally block guarantees limiter release
+        raise
     except ValueError as ve:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
+    except RuntimeError as re:
+        logger.error(f"Runtime error processing upload '{file.filename}': {re}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Document processing failed: {str(re)}")
     except Exception as e:
         logger.error(f"Error processing upload '{file.filename}': {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to process document upload.")
+    finally:
+        try:
+            await file.close()
+        except Exception:
+            pass
+        limiter.release()
+        trim_memory()
 
 
 @app.get("/api/v1/documents", response_model=List[DocumentMetadata], tags=["Documents"])
@@ -244,7 +340,9 @@ async def run_investigation(
         return response
     except Exception as e:
         logger.error(f"Error during investigation: {e}", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Investigation pipeline failed.")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Investigation pipeline failed: {str(e)}")
+    finally:
+        trim_memory()
 
 
 @app.post("/api/v1/retrieve", response_model=RetrievalResponse, tags=["Retrieval"])
@@ -260,7 +358,9 @@ async def run_retrieval(
         return response
     except Exception as e:
         logger.error(f"Error during retrieval: {e}", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Retrieval operation failed.")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Retrieval operation failed: {str(e)}")
+    finally:
+        trim_memory()
 
 
 # ---------------------------------------------------------------------------
@@ -285,6 +385,8 @@ async def execute_evaluation(
     except Exception as e:
         logger.error(f"Evaluation benchmark failed: {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Benchmark execution failed: {str(e)}")
+    finally:
+        trim_memory()
 
 
 @app.get("/api/v1/evaluations", response_model=List[BenchmarkReport], tags=["Evaluation"])
@@ -312,6 +414,11 @@ async def get_system_settings(settings: Settings = Depends(get_settings)):
     return {
         "embedding_model": settings.EMBEDDING_MODEL,
         "reranker_model": settings.RERANKER_MODEL,
+        "enable_reranker": settings.ENABLE_RERANKER,
+        "auto_seed_data": settings.AUTO_SEED_DATA,
+        "embedding_batch_size": getattr(settings, "EMBEDDING_BATCH_SIZE", 2),
+        "max_concurrent_uploads": getattr(settings, "MAX_CONCURRENT_UPLOADS", 1),
+        "max_upload_size_mb": getattr(settings, "MAX_UPLOAD_SIZE_MB", 10),
         "groq_model": settings.GROQ_MODEL,
         "dense_top_k": settings.DENSE_TOP_K,
         "bm25_top_k": settings.BM25_TOP_K,
@@ -329,7 +436,9 @@ async def get_system_settings(settings: Settings = Depends(get_settings)):
 if __name__ == "__main__":
     import os
     import uvicorn
+    from incident_rag.mem_utils import configure_runtime_memory_limits
 
+    configure_runtime_memory_limits()
     host = os.environ.get("FASTAPI_HOST", "0.0.0.0")
     port = int(os.environ.get("PORT", os.environ.get("FASTAPI_PORT", 8000)))
-    uvicorn.run("incident_rag.api:app", host=host, port=port, reload=False)
+    uvicorn.run("incident_rag.api:app", host=host, port=port, workers=1, reload=False)

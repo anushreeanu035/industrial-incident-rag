@@ -3,6 +3,16 @@ FROM python:3.11-slim
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
+    OMP_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1 \
+    OPENBLAS_NUM_THREADS=1 \
+    TOKENIZERS_PARALLELISM=false \
+    MALLOC_ARENA_MAX=2 \
+    AUTO_SEED_DATA=false \
+    ENABLE_RERANKER=false \
+    EMBEDDING_BATCH_SIZE=2 \
+    MAX_CONCURRENT_UPLOADS=1 \
+    MAX_UPLOAD_SIZE_MB=10 \
     PORT=8000
 
 WORKDIR /app
@@ -32,5 +42,5 @@ RUN pip install --no-cache-dir -e .
 
 EXPOSE 8000
 
-# Start Uvicorn bound to 0.0.0.0 and dynamically assigned $PORT
-CMD ["sh", "-c", "uvicorn incident_rag.api:app --host 0.0.0.0 --port ${PORT:-8000} --app-dir src"]
+# Start Uvicorn bound to 0.0.0.0, single worker, and dynamically assigned $PORT
+CMD ["sh", "-c", "uvicorn incident_rag.api:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1 --app-dir src"]
