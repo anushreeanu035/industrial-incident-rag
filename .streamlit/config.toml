@@ -1,8 +1,8 @@
 [server]
 headless = true
-enableCORS = false
-enableXsrfProtection = false
-enableWebsocketCompression = false
+enableCORS = true
+enableXsrfProtection = true
+enableWebsocketCompression = true
 
 [browser]
 gatherUsageStats = false

@@ -222,13 +222,25 @@ if active_report:
         fig_latency = render_latency_chart(results)
         st.plotly_chart(fig_latency, use_container_width=True, config=chart_cfg)
 
-    # Download CSV Report Button
+    # Download Export Report Buttons
+    col_dl1, col_dl2 = st.columns(2)
     csv_data = df_results.to_csv(index=False).encode("utf-8")
-    st.download_button(
-        label="📥 Download Benchmark Report (CSV)",
-        data=csv_data,
-        file_name=f"benchmark_{active_report.get('run_id')}.csv",
-        mime="text/csv",
-        use_container_width=True,
-        type="primary",
-    )
+    with col_dl1:
+        st.download_button(
+            label="📥 Download Benchmark Report (CSV)",
+            data=csv_data,
+            file_name=f"benchmark_{active_report.get('run_id')}.csv",
+            mime="text/csv",
+            use_container_width=True,
+            type="primary",
+        )
+    with col_dl2:
+        import json
+        json_data = json.dumps(active_report, indent=2).encode("utf-8")
+        st.download_button(
+            label="📥 Download Raw Benchmark Data (JSON)",
+            data=json_data,
+            file_name=f"benchmark_{active_report.get('run_id')}.json",
+            mime="application/json",
+            use_container_width=True,
+        )

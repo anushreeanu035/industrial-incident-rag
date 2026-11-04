@@ -8,7 +8,9 @@ if str(_PROJECT_ROOT) not in sys.path:
 from datetime import datetime
 import hashlib
 import html
+import json
 from typing import Any, Dict, List, Optional
+import uuid
 import streamlit as st
 
 from frontend.components.api_client import api_client
@@ -100,9 +102,14 @@ with tab_doc:
                 for d in sorted_docs
             }
 
+            doc_keys = list(doc_options.keys())
+            preselected_id = st.session_state.get("selected_doc_id")
+            default_idx = doc_keys.index(preselected_id) if preselected_id in doc_keys else 0
+
             selected_doc_id = st.selectbox(
                 "Choose Incident Report to Analyze:",
-                options=list(doc_options.keys()),
+                options=doc_keys,
+                index=default_idx,
                 format_func=lambda x: doc_options[x],
                 key="sb_select_existing_doc",
             )
@@ -208,11 +215,15 @@ with tab_doc:
                     if "investigation_history" not in st.session_state:
                         st.session_state["investigation_history"] = []
                     st.session_state["investigation_history"].append({
+                        "id": str(uuid.uuid4())[:8],
                         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                        "query": f"Document Analysis: {active_doc_filename}",
+                        "mode": "Document Analysis",
+                        "query_or_doc": f"Doc: {active_doc_filename}",
                         "machine_id": active_doc_meta.get("machine_id", "M-301"),
                         "status": "Completed",
-                        "findings": (analysis_result.get("executive_summary") or "Structured forensic report generated.")[:120] + "...",
+                        "is_sufficient": True,
+                        "findings": (analysis_result.get("executive_summary") or "Structured forensic report generated.")[:130] + "...",
+                        "data": analysis_result,
                     })
                 except Exception as e:
                     st.error(f"❌ Document analysis failed: {str(e)}")
@@ -340,11 +351,15 @@ with tab_qa:
                     if "investigation_history" not in st.session_state:
                         st.session_state["investigation_history"] = []
                     st.session_state["investigation_history"].append({
+                        "id": str(uuid.uuid4())[:8],
                         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                        "query": user_query[:80] + ("..." if len(user_query) > 80 else ""),
+                        "mode": "Evidence Q&A",
+                        "query_or_doc": user_query[:80] + ("..." if len(user_query) > 80 else ""),
                         "machine_id": selected_machine if selected_machine != "All Equipment" else "All",
                         "status": "Completed" if qa_response.get("is_sufficient_evidence", True) else "Mismatch / Limited",
-                        "findings": (qa_response.get("executive_summary") or "Grounded Q&A forensic findings")[:120] + "...",
+                        "is_sufficient": qa_response.get("is_sufficient_evidence", True),
+                        "findings": (qa_response.get("executive_summary") or "Grounded Q&A forensic findings")[:130] + "...",
+                        "data": qa_response,
                     })
                 except Exception as e:
                     st.error(f"Investigation execution failed: {str(e)}")
@@ -371,18 +386,26 @@ with tab_qa:
                 unsafe_allow_html=True,
             )
 
-        col_qa_hdr, col_qa_dl = st.columns([3, 1], vertical_alignment="bottom")
+        col_qa_hdr, col_qa_dl1, col_qa_dl2 = st.columns([3, 1, 1], vertical_alignment="bottom")
         with col_qa_hdr:
             st.markdown("### 📋 Executive Investigation Summary")
-        with col_qa_dl:
+        with col_qa_dl1:
             qa_md = generate_report_markdown(qa_resp, investigated_query)
             st.download_button(
-                "📥 Download Q&A Report",
+                "📥 Download Report (.md)",
                 data=qa_md,
                 file_name="incident_investigation_qa_report.md",
                 mime="text/markdown",
                 use_container_width=True,
                 type="primary",
+            )
+        with col_qa_dl2:
+            st.download_button(
+                "📥 Export JSON",
+                data=json.dumps(qa_resp, indent=2),
+                file_name="incident_investigation_qa_report.json",
+                mime="application/json",
+                use_container_width=True,
             )
 
         # Executive Summary Box
@@ -430,3 +453,26 @@ with tab_qa:
 
         # Expandable Citations and Audit Trail
         render_citation_accordion(qa_resp.get("citations", []))
+
+# ===========================================================================
+# Investigation Session History Drawer (Reopen & Audit)
+# ===========================================================================
+inv_history = st.session_state.get("investigation_history", [])
+if inv_history:
+    st.divider()
+    with st.expander(f"🕒 Investigation Session History ({len(inv_history)} Investigations)", expanded=False):
+        for idx, h_item in enumerate(reversed(inv_history), start=1):
+            col_h1, col_h2, col_h3 = st.columns([4, 2, 2])
+            with col_h1:
+                st.markdown(f"**#{idx} [{h_item.get('mode')}]** {h_item.get('query_or_doc')}")
+                st.caption(f"Machine: `{h_item.get('machine_id')}` | Status: `{h_item.get('status')}` | Time: `{h_item.get('timestamp')}`")
+            with col_h2:
+                st.markdown(f"<div style='font-size: 12px; color: var(--text-secondary);'>{h_item.get('findings')}</div>", unsafe_allow_html=True)
+            with col_h3:
+                if st.button("🔄 Reopen Report", key=f"btn_reopen_hist_{idx}", use_container_width=True):
+                    if h_item.get("mode") == "Document Analysis":
+                        st.session_state["doc_analysis_result"] = h_item.get("data")
+                        st.session_state["doc_source_mode_radio"] = "Select from Knowledge Base"
+                    else:
+                        st.session_state["qa_latest_investigation"] = h_item.get("data")
+                    st.rerun()

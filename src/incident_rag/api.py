@@ -49,6 +49,7 @@ from incident_rag.reranking import get_cross_encoder_reranker
 from incident_rag.schemas import (
     BenchmarkReport,
     DocumentAnalysisResponse,
+    DocumentChunk,
     DocumentMetadata,
     DocumentUploadResponse,
     EvaluationRunRequest,
@@ -293,6 +294,20 @@ async def get_document(document_id: str, doc_store: DocumentStore = Depends(get_
     return doc
 
 
+@app.get("/api/v1/documents/{document_id}/chunks", response_model=List[DocumentChunk], tags=["Documents"])
+async def get_document_chunks(
+    document_id: str,
+    limit: int = 100,
+    vec_store: VectorStore = Depends(get_vector_store),
+    doc_store: DocumentStore = Depends(get_document_store),
+):
+    """Retrieves all indexed text chunks and chunk metadata for preview and inspection."""
+    doc = doc_store.get_document(document_id)
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
+    return vec_store.get_document_chunks(document_id=document_id, limit=limit)
+
+
 @app.delete("/api/v1/documents/{document_id}", tags=["Documents"])
 async def delete_document(
     document_id: str,
@@ -316,7 +331,7 @@ async def analyze_document(
 ):
     """Executes structured document-driven forensic investigation for a selected incident report."""
     try:
-        response = pipeline.analyze_document(document_id)
+        response = await asyncio.to_thread(pipeline.analyze_document, document_id)
         return response
     except ValueError as ve:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(ve))
@@ -342,7 +357,7 @@ async def run_investigation(
     if not request.query.strip():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Investigation query cannot be empty.")
     try:
-        response = pipeline.investigate(request)
+        response = await asyncio.to_thread(pipeline.investigate, request)
         return response
     except Exception as e:
         logger.error(f"Error during investigation: {e}", exc_info=True)
@@ -360,7 +375,7 @@ async def run_retrieval(
     if not request.query.strip():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Retrieval query cannot be empty.")
     try:
-        response = pipeline.retrieve(request)
+        response = await asyncio.to_thread(pipeline.retrieve, request)
         return response
     except Exception as e:
         logger.error(f"Error during retrieval: {e}", exc_info=True)
@@ -381,7 +396,8 @@ async def execute_evaluation(
 ):
     """Executes reproducible benchmark evaluation over ground truth dataset and records report."""
     try:
-        report = runner.run_benchmark(
+        report = await asyncio.to_thread(
+            runner.run_benchmark,
             strategies=request.strategies,
             top_k=request.top_k,
             run_ragas=request.run_ragas,

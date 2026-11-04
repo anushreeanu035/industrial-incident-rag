@@ -84,3 +84,46 @@ def test_api_client_dynamic_url_resolution(monkeypatch):
         client = APIClient()
         assert client.base_url == "https://custom-cloud.onrender.com"
 
+
+def test_api_client_retry_on_502():
+    client = APIClient(base_url="http://127.0.0.1:8000")
+    
+    # First response is 502 Bad Gateway, second is 200 OK
+    resp_502 = MagicMock()
+    resp_502.status_code = 502
+    resp_502.text = "Bad Gateway"
+
+    resp_200 = MagicMock()
+    resp_200.status_code = 200
+    resp_200.json.return_value = {"status": "healthy", "indexed_documents": 3}
+
+    with patch.object(client, "_get_client") as mock_get_client:
+        mock_http = MagicMock()
+        mock_http.get.side_effect = [resp_502, resp_200]
+        mock_get_client.return_value = mock_http
+
+        with patch("time.sleep", return_value=None):
+            result = client.check_health(ttl=0.0)
+            assert result["status"] == "healthy"
+            assert mock_http.get.call_count == 2
+
+
+def test_api_client_get_document_chunks():
+    client = APIClient(base_url="http://127.0.0.1:8000")
+    with patch.object(client, "_get") as mock_get:
+        mock_get.return_value = [{"chunk_id": "chk_1", "text": "Bearing seal failed"}]
+        chunks = client.get_document_chunks("doc_123")
+        assert len(chunks) == 1
+        assert chunks[0]["chunk_id"] == "chk_1"
+        mock_get.assert_called_once_with("/api/v1/documents/doc_123/chunks?limit=100")
+
+
+def test_api_client_connection_info():
+    client = APIClient(base_url="http://127.0.0.1:8000")
+    with patch.object(client, "check_health", return_value={"status": "healthy"}):
+        info = client.get_connection_info()
+        assert info["online"] is True
+        assert info["base_url"] == "http://127.0.0.1:8000"
+        assert info["data"]["status"] == "healthy"
+
+

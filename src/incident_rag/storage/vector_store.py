@@ -142,6 +142,42 @@ class VectorStore:
 
         return results
 
+    def get_document_chunks(self, document_id: str, limit: int = 100) -> List[DocumentChunk]:
+        """Retrieves indexed text chunks belonging to a document, ordered by chunk index."""
+        doc_filter = Filter(must=[FieldCondition(key="document_id", match=MatchValue(value=document_id))])
+        records, _ = self.client.scroll(
+            collection_name=self.collection_name,
+            scroll_filter=doc_filter,
+            limit=limit,
+            with_payload=True,
+            with_vectors=False,
+        )
+        chunks: List[DocumentChunk] = []
+        for point in records:
+            p = point.payload
+            meta = ChunkMetadata(
+                chunk_id=p["chunk_id"],
+                document_id=p["document_id"],
+                chunk_index=p.get("chunk_index", 0),
+                page_number=p.get("page_number"),
+                start_char=p.get("start_char", 0),
+                end_char=p.get("end_char", 0),
+                machine_id=p.get("machine_id"),
+                incident_type=p.get("incident_type"),
+                incident_date=p.get("incident_date"),
+                source_filename=p.get("source_filename", ""),
+            )
+            chunks.append(
+                DocumentChunk(
+                    chunk_id=p["chunk_id"],
+                    document_id=p["document_id"],
+                    text=p.get("text", ""),
+                    metadata=meta,
+                )
+            )
+        chunks.sort(key=lambda c: c.metadata.chunk_index)
+        return chunks
+
     def delete_document(self, document_id: str) -> None:
         """Deletes all chunks belonging to a document from Qdrant."""
         doc_filter = Filter(must=[FieldCondition(key="document_id", match=MatchValue(value=document_id))])

@@ -11,7 +11,27 @@ def client():
         yield test_client
 
 
-def test_health_endpoint(client: TestClient):
+def test_root_redirect(client: TestClient):
+    resp = client.get("/", follow_redirects=False)
+    assert resp.status_code in (307, 308, 302, 301)
+    assert resp.headers["location"] == "/docs"
+
+
+def test_document_chunks_endpoint(client: TestClient):
+    # Retrieve all documents to find an existing document ID
+    list_resp = client.get("/api/v1/documents")
+    assert list_resp.status_code == 200
+    docs = list_resp.json()
+    if docs:
+        doc_id = docs[0]["document_id"]
+        chunks_resp = client.get(f"/api/v1/documents/{doc_id}/chunks")
+        assert chunks_resp.status_code == 200
+        chunks = chunks_resp.json()
+        assert isinstance(chunks, list)
+        if chunks:
+            assert "chunk_id" in chunks[0]
+            assert "text" in chunks[0]
+
     resp = client.get("/health")
     assert resp.status_code == 200
     data = resp.json()

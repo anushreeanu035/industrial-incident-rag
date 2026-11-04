@@ -40,6 +40,13 @@ COPY data/benchmark/ data/benchmark/
 # Install the package in editable/package mode
 RUN pip install --no-cache-dir -e .
 
+# Pre-download SentenceTransformer model weights during build to eliminate runtime network lag/timeouts
+ENV HF_HOME=/app/models_cache
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2', device='cpu')"
+
+# Pre-seed initial knowledge base during build so the database is populated without consuming runtime memory
+RUN python -c "from pathlib import Path; from incident_rag.dependencies import get_ingestion_service; get_ingestion_service().ingest_directory(Path('data/raw'))"
+
 EXPOSE 8000
 
 # Start Uvicorn bound to 0.0.0.0, single worker, and dynamically assigned $PORT

@@ -105,6 +105,31 @@ with c4:
         unsafe_allow_html=True,
     )
 
+with st.expander("🔗 Backend Service Connection Settings", expanded=not is_healthy):
+    st.markdown(
+        "<p style='font-size: 13px; color: #64748B; margin-bottom: 8px;'>"
+        "Switch or test your FastAPI backend deployment URL. By default, Streamlit Cloud reads "
+        "<code>BACKEND_URL</code> from Streamlit Secrets or Environment Variables."
+        "</p>",
+        unsafe_allow_html=True,
+    )
+    col_u1, col_u2 = st.columns([3, 1])
+    with col_u1:
+        new_url_input = st.text_input(
+            "Target FastAPI Backend Host:",
+            value=api_client.base_url,
+            help="Render deployment URL (e.g. https://incident-rag-backend.onrender.com)",
+            key="input_backend_url_settings",
+        )
+    with col_u2:
+        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+        if st.button("Connect & Test →", key="btn_apply_backend_url", type="primary", use_container_width=True):
+            cleaned_url = new_url_input.strip().rstrip("/")
+            st.session_state["backend_url_override"] = cleaned_url
+            api_client.base_url = cleaned_url
+            api_client.clear_cache()
+            st.rerun()
+
 st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 
 # Architecture Overview Cards
@@ -245,13 +270,27 @@ st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
 # Environment & Storage Audit
 st.markdown("### 🔒 Storage & Environment Verification")
 
-qdrant_path = _PROJECT_ROOT / "data" / "processed" / "qdrant_db"
-bm25_path = _PROJECT_ROOT / "data" / "processed" / "bm25_index.pkl"
-docs_path = _PROJECT_ROOT / "data" / "processed" / "documents.json"
+is_remote = not ("127.0.0.1" in api_client.base_url or "localhost" in api_client.base_url)
 
-qdrant_exists = qdrant_path.exists()
-bm25_exists = bm25_path.exists()
-docs_exists = docs_path.exists()
+if is_remote and is_healthy:
+    chunks_count = health.get("indexed_chunks", 0)
+    docs_count = health.get("indexed_documents", 0)
+    qdrant_exists = is_healthy
+    bm25_exists = is_healthy
+    docs_exists = is_healthy
+    qdrant_loc = f"Backend Persistent DB ({chunks_count} chunks)"
+    bm25_loc = "Backend BM25 Corpus Index (Active)"
+    docs_loc = f"Backend Registry ({docs_count} dossiers)"
+else:
+    qdrant_path = _PROJECT_ROOT / "data" / "processed" / "qdrant_db"
+    bm25_path = _PROJECT_ROOT / "data" / "processed" / "bm25_index.pkl"
+    docs_path = _PROJECT_ROOT / "data" / "processed" / "documents.json"
+    qdrant_exists = qdrant_path.exists()
+    bm25_exists = bm25_path.exists()
+    docs_exists = docs_path.exists()
+    qdrant_loc = "data/processed/qdrant_db/"
+    bm25_loc = "data/processed/bm25_index.pkl"
+    docs_loc = "data/processed/documents.json"
 
 st.markdown(
     f"""
@@ -259,21 +298,21 @@ st.markdown(
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
             <div style="border-left: 3px solid {'#16A34A' if qdrant_exists else '#DC2626'}; padding-left: 12px;">
                 <div style="font-weight: 700; color: #0F1E36; font-size: 14px;">Qdrant Vector Database</div>
-                <div style="font-size: 12px; color: #64748B; font-family: monospace; margin: 2px 0;">data/processed/qdrant_db/</div>
+                <div style="font-size: 12px; color: #64748B; font-family: monospace; margin: 2px 0;">{qdrant_loc}</div>
                 <div style="font-size: 12px; font-weight: 600; color: {'#16A34A' if qdrant_exists else '#DC2626'};">
                     {'✓ Initialized & Verified' if qdrant_exists else '✗ Not Initialized'}
                 </div>
             </div>
             <div style="border-left: 3px solid {'#16A34A' if bm25_exists else '#DC2626'}; padding-left: 12px;">
                 <div style="font-weight: 700; color: #0F1E36; font-size: 14px;">BM25 Keyword Index</div>
-                <div style="font-size: 12px; color: #64748B; font-family: monospace; margin: 2px 0;">data/processed/bm25_index.pkl</div>
+                <div style="font-size: 12px; color: #64748B; font-family: monospace; margin: 2px 0;">{bm25_loc}</div>
                 <div style="font-size: 12px; font-weight: 600; color: {'#16A34A' if bm25_exists else '#DC2626'};">
                     {'✓ Persisted & Loaded' if bm25_exists else '✗ Not Found'}
                 </div>
             </div>
             <div style="border-left: 3px solid {'#16A34A' if docs_exists else '#DC2626'}; padding-left: 12px;">
                 <div style="font-weight: 700; color: #0F1E36; font-size: 14px;">Document Metadata Registry</div>
-                <div style="font-size: 12px; color: #64748B; font-family: monospace; margin: 2px 0;">data/processed/documents.json</div>
+                <div style="font-size: 12px; color: #64748B; font-family: monospace; margin: 2px 0;">{docs_loc}</div>
                 <div style="font-size: 12px; font-weight: 600; color: {'#16A34A' if docs_exists else '#DC2626'};">
                     {'✓ Metadata Registry Active' if docs_exists else '✗ Missing'}
                 </div>

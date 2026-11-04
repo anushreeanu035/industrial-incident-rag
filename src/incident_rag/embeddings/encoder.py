@@ -76,7 +76,12 @@ class EmbeddingEncoder:
                         from sentence_transformers import SentenceTransformer
 
                         with torch.inference_mode():
-                            model = SentenceTransformer(self.model_name, device="cpu")
+                            # Attempt offline local files first to avoid remote HTTPS hang and HuggingFace rate-limits
+                            try:
+                                model = SentenceTransformer(self.model_name, device="cpu", local_files_only=True)
+                            except Exception:
+                                logger.info(f"Local model weights not found for '{self.model_name}', falling back to hub...")
+                                model = SentenceTransformer(self.model_name, device="cpu")
                             model.eval()
 
                         if hasattr(model, "get_embedding_dimension"):
