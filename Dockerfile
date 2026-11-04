@@ -32,7 +32,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy source code and initial seed data
-COPY pyproject.toml .
+COPY pyproject.toml README.md ./
 COPY src/ src/
 COPY data/raw/ data/raw/
 COPY data/benchmark/ data/benchmark/

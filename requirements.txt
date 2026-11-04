@@ -27,6 +27,4 @@ datasets>=2.18.0
 pytest>=8.0.0
 pytest-asyncio>=0.23.0
 
-# Package self-install
--e .
 
