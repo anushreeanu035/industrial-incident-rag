@@ -476,4 +476,3 @@ if inv_history:
                     else:
                         st.session_state["qa_latest_investigation"] = h_item.get("data")
                     st.rerun()
-ds4g
