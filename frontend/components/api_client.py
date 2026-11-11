@@ -222,6 +222,18 @@ class APIClient:
         try:
             data = self._get("/health", timeout=5.0, max_retries=2)
             self._last_latency_ms = (time.perf_counter() - start_t) * 1000.0
+
+            # If groq not configured on backend, attempt auto-sync from st.secrets
+            if not data.get("groq_configured"):
+                try:
+                    from frontend.components.backend_service import extract_groq_credentials
+                    sec_key, sec_model = extract_groq_credentials()
+                    if sec_key:
+                        self.configure_groq(sec_key, sec_model)
+                        data = self._get("/health", timeout=5.0, max_retries=2)
+                except Exception:
+                    pass
+
             self._cache[cache_key] = data
             self._cache_timestamps[cache_key] = now
             self._is_online = True
@@ -231,6 +243,14 @@ class APIClient:
             self._is_online = False
             self._last_error = str(e)
             raise
+
+    def configure_groq(self, api_key: str, model: str = "openai/gpt-oss-120b") -> Dict[str, Any]:
+        """Dynamically configures Groq LLM credentials and triggers live connection testing."""
+        url = "/api/v1/system/configure"
+        payload = {"groq_api_key": api_key.strip(), "groq_model": model.strip()}
+        res = self._post(url, json_data=payload, timeout=10.0, max_retries=1)
+        self.clear_cache("health")
+        return res
 
     def health_check(self, ttl: float = 10.0) -> Dict[str, Any]:
         """Alias for check_health to support callers using health_check()."""

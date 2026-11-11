@@ -132,6 +132,65 @@ with st.expander("🔗 Backend Service Connection Settings", expanded=not is_hea
             api_client.clear_cache()
             st.rerun()
 
+# Groq LLM Configuration & Key Testing Section
+groq_configured = health.get("groq_configured", False)
+groq_connected = health.get("groq_connected", False)
+groq_model_name = health.get("groq_model", "openai/gpt-oss-120b")
+groq_err_msg = health.get("groq_error")
+
+with st.expander("🔑 Groq Cloud LLM Configuration & Connection Test", expanded=(not groq_connected)):
+    if groq_connected:
+        st.success(f"🟢 **Groq LLM Active & Connected**: Using `{groq_model_name}`. Ultra-fast inference is live!")
+    elif groq_configured:
+        st.error(f"🔴 **Groq Connection Failed**: {groq_err_msg or 'Authentication failed or model inaccessible.'}")
+    else:
+        st.warning(
+            "⚠️ **Groq LLM is Unconfigured (Running in Offline Fallback Mode)**\n\n"
+            "To enable ultra-fast neural query rewriting and grounded investigation synthesis, "
+            "provide your Groq API key below or set `GROQ_API_KEY` in Streamlit Cloud Secrets."
+        )
+
+    col_k1, col_k2 = st.columns([2, 1])
+    with col_k1:
+        entered_key = st.text_input(
+            "Groq API Key (`gsk_...`):",
+            type="password",
+            placeholder="Paste your gsk_... key here",
+            help="Your API key is transmitted directly to your FastAPI backend and never stored in plain text.",
+            key="input_groq_api_key_settings",
+        )
+    with col_k2:
+        entered_model = st.text_input(
+            "Groq Model:",
+            value=groq_model_name,
+            help="Default model is openai/gpt-oss-120b",
+            key="input_groq_model_settings",
+        )
+
+    col_btn, _ = st.columns([1, 2])
+    with col_btn:
+        if st.button("Save & Connect Groq LLM →", key="btn_save_groq_creds", type="primary", use_container_width=True):
+            if not entered_key.strip():
+                st.error("Please enter a valid Groq API key.")
+            else:
+                with st.spinner("Connecting to Groq API and verifying model..."):
+                    try:
+                        res = api_client.configure_groq(
+                            api_key=entered_key.strip(),
+                            model=entered_model.strip() or "openai/gpt-oss-120b",
+                        )
+                        if res.get("groq_connected"):
+                            st.toast("Groq connected successfully!", icon="✅")
+                            st.success(f"Connected to Groq ({res.get('groq_model')})!")
+                        else:
+                            st.toast("Connection failed. Check API key or model.", icon="❌")
+                            st.error(f"Groq API Error: {res.get('groq_error')}")
+                        import time
+                        time.sleep(0.5)
+                        st.rerun()
+                    except Exception as ex:
+                        st.error(f"Failed to configure Groq: {str(ex)}")
+
 st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 
 # Architecture Overview Cards

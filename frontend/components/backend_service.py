@@ -1,5 +1,6 @@
 """Backend service manager for lifecycle, health polling, and Streamlit Cloud secrets bridging."""
 
+import json
 import logging
 import os
 import subprocess
@@ -8,31 +9,97 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 import streamlit as st
 
 logger = logging.getLogger("incident_rag.backend_service")
 
 
-def sync_streamlit_secrets(env: Optional[Dict[str, str]] = None) -> Dict[str, str]:
-    """Bridges Streamlit Community Cloud Secrets to the subprocess environment.
+def extract_groq_credentials() -> Tuple[Optional[str], str]:
+    """Extracts Groq API key and model from st.secrets or os.environ across all common formats."""
+    api_key: Optional[str] = None
+    model: str = "openai/gpt-oss-120b"
 
-    Handles flat key-values as well as nested sections (e.g., [general], [secrets]).
-    """
+    # 1. Check os.environ
+    for k in ("GROQ_API_KEY", "groq_api_key", "GROQ_KEY", "groq_key"):
+        val = os.environ.get(k, "").strip().strip("\"'").strip()
+        if val:
+            api_key = val
+            break
+
+    for k in ("GROQ_MODEL", "groq_model"):
+        val = os.environ.get(k, "").strip().strip("\"'").strip()
+        if val:
+            model = val
+            break
+
+    # 2. Check st.secrets (flat keys)
+    try:
+        if hasattr(st, "secrets"):
+            for k in ("GROQ_API_KEY", "groq_api_key", "GROQ_KEY", "groq_key"):
+                if k in st.secrets and str(st.secrets[k]).strip():
+                    api_key = str(st.secrets[k]).strip().strip("\"'").strip()
+                    break
+
+            for k in ("GROQ_MODEL", "groq_model"):
+                if k in st.secrets and str(st.secrets[k]).strip():
+                    model = str(st.secrets[k]).strip().strip("\"'").strip()
+                    break
+
+            # 3. Check nested sections in st.secrets (e.g. [general], [secrets], [groq], [default])
+            for section in ("general", "secrets", "groq", "default"):
+                if section in st.secrets:
+                    sec_obj = st.secrets[section]
+                    for k in ("GROQ_API_KEY", "groq_api_key", "api_key", "GROQ_KEY", "groq_key"):
+                        try:
+                            if k in sec_obj and str(sec_obj[k]).strip():
+                                api_key = str(sec_obj[k]).strip().strip("\"'").strip()
+                                break
+                        except Exception:
+                            pass
+                    for k in ("GROQ_MODEL", "groq_model", "model"):
+                        try:
+                            if k in sec_obj and str(sec_obj[k]).strip():
+                                model = str(sec_obj[k]).strip().strip("\"'").strip()
+                                break
+                        except Exception:
+                            pass
+    except Exception as ex:
+        logger.debug(f"Error reading st.secrets: {ex}")
+
+    return api_key, model
+
+
+def sync_streamlit_secrets(env: Optional[Dict[str, str]] = None) -> Dict[str, str]:
+    """Bridges Streamlit Community Cloud Secrets to the subprocess environment."""
     if env is None:
         target_env = os.environ
     else:
         target_env = env
 
+    api_key, model = extract_groq_credentials()
+    if api_key:
+        target_env["GROQ_API_KEY"] = api_key
+        target_env["groq_api_key"] = api_key
+        os.environ["GROQ_API_KEY"] = api_key
+        os.environ["groq_api_key"] = api_key
+
+    if model:
+        target_env["GROQ_MODEL"] = model
+        target_env["groq_model"] = model
+        os.environ["GROQ_MODEL"] = model
+        os.environ["groq_model"] = model
+
     try:
         if hasattr(st, "secrets"):
-            for key, val in st.secrets.items():
+            for key in st.secrets:
+                val = st.secrets[key]
                 if isinstance(val, (str, int, float, bool)):
                     str_val = str(val).strip()
                     target_env[str(key)] = str_val
                     os.environ[str(key)] = str_val
-                elif isinstance(val, dict):
+                elif hasattr(val, "items"):
                     for sub_k, sub_v in val.items():
                         if isinstance(sub_v, (str, int, float, bool)):
                             str_val = str(sub_v).strip()
@@ -42,6 +109,28 @@ def sync_streamlit_secrets(env: Optional[Dict[str, str]] = None) -> Dict[str, st
         logger.debug(f"Streamlit secrets sync skipped or failed: {ex}")
 
     return target_env
+
+
+def sync_backend_config(host: str = "127.0.0.1", port: int = 8000) -> bool:
+    """Pushes extracted Groq credentials to the running FastAPI backend over HTTP."""
+    api_key, model = extract_groq_credentials()
+    if not api_key:
+        return False
+
+    url = f"http://{host}:{port}/api/v1/system/configure"
+    payload = json.dumps({"groq_api_key": api_key, "groq_model": model}).encode("utf-8")
+    try:
+        req = urllib.request.Request(
+            url,
+            data=payload,
+            headers={"Content-Type": "application/json", "User-Agent": "FrontendConfigSync"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=3.0) as resp:
+            return resp.status == 200
+    except Exception as ex:
+        logger.debug(f"Could not push config to backend at {url}: {ex}")
+        return False
 
 
 def is_backend_healthy(host: str = "127.0.0.1", port: int = 8000, timeout: float = 1.5) -> bool:
@@ -58,11 +147,9 @@ def is_backend_healthy(host: str = "127.0.0.1", port: int = 8000, timeout: float
 def get_python_executable() -> str:
     """Finds the active virtual environment Python executable, falling back to sys.executable."""
     project_root = Path(__file__).resolve().parent.parent.parent
-    # Check Windows venv
     venv_win = project_root / ".venv" / "Scripts" / "python.exe"
     if venv_win.is_file():
         return str(venv_win)
-    # Check Linux/macOS venv
     venv_nix = project_root / ".venv" / "bin" / "python"
     if venv_nix.is_file():
         return str(venv_nix)
@@ -113,6 +200,8 @@ def ensure_backend_running(host: str = "127.0.0.1", port: int = 8000) -> bool:
     # 2. Check if local backend is already healthy
     if is_backend_healthy(host=host, port=port, timeout=1.0):
         logger.info(f"FastAPI backend already healthy on http://{host}:{port}")
+        # Synchronize credentials to ensure running instance has active Groq credentials
+        sync_backend_config(host=host, port=port)
         return True
 
     # 3. Spawn local uvicorn subprocess
@@ -144,15 +233,14 @@ def ensure_backend_running(host: str = "127.0.0.1", port: int = 8000) -> bool:
         return False
 
     # 4. Poll /health until ready
-    health_url = f"http://{host}:{port}/health"
     max_retries = 30
     delay_sec = 0.8
     for attempt in range(1, max_retries + 1):
         if is_backend_healthy(host=host, port=port, timeout=1.0):
             logger.info(f"FastAPI backend is online and healthy on attempt {attempt}")
+            sync_backend_config(host=host, port=port)
             return True
         if proc.poll() is not None:
-            # Process terminated prematurely
             stderr_out = ""
             if proc.stderr:
                 try:

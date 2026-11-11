@@ -198,6 +198,57 @@ def _test_groq_connection(api_key: str, model: str) -> Dict[str, Any]:
     return _cached_groq_status
 
 
+from pydantic import BaseModel
+from incident_rag.generation import GroundedAnswerGenerator
+
+
+class SystemConfigRequest(BaseModel):
+    groq_api_key: Optional[str] = None
+    groq_model: Optional[str] = None
+
+
+@app.post("/api/v1/system/configure", tags=["System"])
+async def configure_system_runtime(
+    req: SystemConfigRequest,
+    settings: Settings = Depends(get_settings),
+):
+    """Dynamically updates runtime LLM configuration without requiring process restart."""
+    global _last_groq_test_time
+    updated = False
+    if req.groq_api_key is not None:
+        key_val = req.groq_api_key.strip()
+        settings.GROQ_API_KEY = key_val
+        os.environ["GROQ_API_KEY"] = key_val
+        updated = True
+    if req.groq_model is not None and req.groq_model.strip():
+        model_val = req.groq_model.strip()
+        settings.GROQ_MODEL = model_val
+        os.environ["GROQ_MODEL"] = model_val
+        updated = True
+
+    if updated:
+        try:
+            pipeline = get_rag_pipeline()
+            pipeline.generator = GroundedAnswerGenerator(
+                api_key=settings.GROQ_API_KEY,
+                model=settings.GROQ_MODEL,
+            )
+            logger.info(f"Dynamically updated Groq generator with model: {settings.GROQ_MODEL}")
+        except Exception as e:
+            logger.warning(f"Error reinitializing Groq generator: {e}")
+
+        _last_groq_test_time = 0.0
+
+    groq_info = _test_groq_connection(settings.GROQ_API_KEY, settings.GROQ_MODEL)
+    return {
+        "status": "configured" if groq_info["configured"] else "unconfigured",
+        "groq_configured": groq_info["configured"],
+        "groq_connected": groq_info["connected"],
+        "groq_model": groq_info["model"],
+        "groq_error": groq_info["error"],
+    }
+
+
 @app.get("/health", tags=["System"])
 async def health_check(
     settings: Settings = Depends(get_settings),
