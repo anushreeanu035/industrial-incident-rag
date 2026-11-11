@@ -6,6 +6,10 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
+from frontend.components.backend_service import ensure_backend_running, sync_streamlit_secrets
+sync_streamlit_secrets()
+ensure_backend_running()
+
 import pandas as pd
 import streamlit as st
 from frontend.components.api_client import api_client

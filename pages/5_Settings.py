@@ -2,12 +2,12 @@ from pathlib import Path
 import runpy
 import sys
 
-try:
-    from app import _ensure_backend_running
-    _ensure_backend_running()
-except Exception:
-    pass
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
 
+from frontend.components.backend_service import ensure_backend_running
+ensure_backend_running()
 
-_TARGET = Path(__file__).resolve().parent.parent / "frontend" / "pages" / "5_Settings.py"
+_TARGET = _PROJECT_ROOT / "frontend" / "pages" / "5_Settings.py"
 runpy.run_path(str(_TARGET), run_name="__main__")

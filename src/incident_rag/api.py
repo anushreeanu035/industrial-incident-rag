@@ -137,6 +137,67 @@ async def root():
     return RedirectResponse(url="/docs")
 
 
+_last_groq_test_time: float = 0.0
+_cached_groq_status: Dict[str, Any] = {
+    "configured": False,
+    "connected": False,
+    "model": "openai/gpt-oss-120b",
+    "error": None,
+}
+
+
+def _test_groq_connection(api_key: str, model: str) -> Dict[str, Any]:
+    """Tests live Groq connectivity with 60-second TTL caching.
+
+    Never logs, prints, or exposes the API key in responses or errors.
+    """
+    global _last_groq_test_time, _cached_groq_status
+    now = time.time()
+    key_clean = (api_key or "").strip()
+
+    if (now - _last_groq_test_time < 60.0) and _cached_groq_status.get("configured") == bool(key_clean):
+        return _cached_groq_status
+
+    if not key_clean:
+        _cached_groq_status = {
+            "configured": False,
+            "connected": False,
+            "model": model,
+            "error": None,
+        }
+        _last_groq_test_time = now
+        return _cached_groq_status
+
+    try:
+        from groq import Groq
+        client = Groq(api_key=key_clean, timeout=5.0)
+        client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": "ping"}],
+            max_tokens=2,
+        )
+        _cached_groq_status = {
+            "configured": True,
+            "connected": True,
+            "model": model,
+            "error": None,
+        }
+    except Exception as e:
+        err_msg = str(e)
+        if key_clean and key_clean in err_msg:
+            err_msg = err_msg.replace(key_clean, "[REDACTED_API_KEY]")
+        logger.warning(f"Groq API connection test failed for model '{model}': {err_msg[:120]}")
+        _cached_groq_status = {
+            "configured": True,
+            "connected": False,
+            "model": model,
+            "error": err_msg[:180],
+        }
+
+    _last_groq_test_time = now
+    return _cached_groq_status
+
+
 @app.get("/health", tags=["System"])
 async def health_check(
     settings: Settings = Depends(get_settings),
@@ -146,6 +207,7 @@ async def health_check(
     """System health check and loaded resources report."""
     encoder = get_embedding_encoder()
     reranker = get_cross_encoder_reranker()
+    groq_info = _test_groq_connection(settings.GROQ_API_KEY, settings.GROQ_MODEL)
     return {
         "status": "healthy",
         "version": __version__,
@@ -159,7 +221,10 @@ async def health_check(
         "reranker_enabled": reranker.is_enabled,
         "reranker_model_loaded": reranker.is_loaded,
         "auto_seed_data": settings.AUTO_SEED_DATA,
-        "groq_configured": bool(settings.GROQ_API_KEY.strip()),
+        "groq_configured": groq_info["configured"],
+        "groq_connected": groq_info["connected"],
+        "groq_model": groq_info["model"],
+        "groq_error": groq_info["error"],
         "process_memory_mb": get_process_memory_mb(),
     }
 

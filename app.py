@@ -107,20 +107,23 @@ def _ensure_backend_running(host="127.0.0.1", port=8000):
         _wait_for_backend(health_url, max_retries=30, delay=0.8)
 
 
-# If launched directly via `streamlit run app.py`, ensure backend is up and delegate immediately to frontend/app.py
+# Backward compatibility alias
 try:
-    try:
-        from streamlit.runtime.scriptrunner import get_script_run_ctx
-    except ImportError:
-        from streamlit.runtime.scriptrunner_utils.script_run_context import get_script_run_ctx
-    if get_script_run_ctx and get_script_run_ctx() is not None:
-        _ensure_backend_running()
-        import runpy
-        _frontend_entry = os.path.abspath(os.path.join(os.path.dirname(__file__), "frontend", "app.py"))
-        runpy.run_path(_frontend_entry, run_name="__main__")
-        sys.exit(0)
+    from frontend.components.backend_service import ensure_backend_running as _ensure_backend_running
 except Exception:
     pass
+
+
+def _is_streamlit_context() -> bool:
+    """Checks if running inside an active Streamlit execution context."""
+    try:
+        try:
+            from streamlit.runtime.scriptrunner import get_script_run_ctx
+        except ImportError:
+            from streamlit.runtime.scriptrunner_utils.script_run_context import get_script_run_ctx
+        return bool(get_script_run_ctx and get_script_run_ctx() is not None)
+    except Exception:
+        return False
 
 
 def run_backend(host="127.0.0.1", port=8000, reload=True):
@@ -258,6 +261,14 @@ def run_benchmark():
 
 
 if __name__ == "__main__":
+    # If launched directly via `streamlit run app.py`, delegate to frontend/app.py
+    if _is_streamlit_context():
+        _ensure_backend_running()
+        import runpy
+        _frontend_entry = os.path.abspath(os.path.join(os.path.dirname(__file__), "frontend", "app.py"))
+        runpy.run_path(_frontend_entry, run_name="__main__")
+        sys.exit(0)
+
     parser = argparse.ArgumentParser(description="Industrial Incident Investigator Application Manager")
     parser.add_argument(
         "command",

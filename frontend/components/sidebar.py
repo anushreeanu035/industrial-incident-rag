@@ -42,14 +42,26 @@ def render_sidebar(current_page: Optional[str] = None):
             status_text = "Online"
             docs_count = health.get("indexed_documents", 0)
             chunks_count = health.get("indexed_chunks", 0)
-            groq_status = "Connected" if health.get("groq_configured") else "Offline Fallback"
+            groq_configured = health.get("groq_configured", False)
+            groq_connected = health.get("groq_connected", False)
+            groq_model = health.get("groq_model", "openai/gpt-oss-120b")
+            groq_error = health.get("groq_error")
+
+            if groq_connected:
+                model_short = groq_model.split("/")[-1] if "/" in groq_model else groq_model
+                groq_status = f'<span style="color: #16A34A; font-weight: 600;">Connected ({html.escape(model_short)})</span>'
+            elif groq_configured:
+                groq_status = '<span style="color: #DC2626; font-weight: 600;" title="Groq API connection test failed">Connection Failed</span>'
+            else:
+                groq_status = '<span style="color: #D97706; font-weight: 600;">Offline Fallback</span>'
+
             is_connected = True
         except Exception:
             status_color = "#DC2626"
             status_text = "Disconnected"
             docs_count = 0
             chunks_count = 0
-            groq_status = "Unavailable"
+            groq_status = '<span style="color: #94A3B8;">Unavailable</span>'
             is_connected = False
 
         backend_url_display = api_client.base_url
