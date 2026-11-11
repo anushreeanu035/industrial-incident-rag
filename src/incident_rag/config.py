@@ -5,10 +5,12 @@ from functools import lru_cache
 from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
+from dotenv import load_dotenv
 
 
 # Base project root directory
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+load_dotenv(BASE_DIR / '.env', override=True)
 
 
 class Settings(BaseSettings):
@@ -22,7 +24,7 @@ class Settings(BaseSettings):
 
     # Groq API configuration
     GROQ_API_KEY: str = Field(default="", description="API key for Groq Cloud")
-    GROQ_MODEL: str = Field(default="llama-3.3-70b-versatile", description="Default Groq LLM model")
+    GROQ_MODEL: str = Field(default="openai/gpt-oss-120b", description="Default Groq LLM model")
 
     # Local embedding & reranker models
     EMBEDDING_MODEL: str = Field(default="all-MiniLM-L6-v2", description="Sentence Transformers embedding model")

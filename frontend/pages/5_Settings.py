@@ -185,7 +185,7 @@ with col3:
                 <span class="capability-tag" style="background: #FAF5FF; color: #7C3AED; border-color: #E9D5FF;">CLOUD LLM</span>
             </div>
             <p style="font-size: 14.5px; font-weight: 700; color: #7C3AED; margin: 4px 0 0 0; font-family: monospace;">
-                {settings_data.get("groq_model", "llama-3.3-70b-versatile")}
+                {settings_data.get("groq_model", "openai/gpt-oss-120b")}
             </p>
             <p style="font-size: 12.5px; color: #64748B; margin-top: 8px; line-height: 1.45; margin-bottom: 0;">
                 Groq Cloud ultra-fast inference for multi-query rewriting, forensic report generation, and automated fallback offline synthesis.
