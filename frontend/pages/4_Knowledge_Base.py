@@ -5,6 +5,13 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
+try:
+    from app import _ensure_backend_running
+    _ensure_backend_running()
+except Exception:
+    pass
+
+
 import math
 import pandas as pd
 import streamlit as st
