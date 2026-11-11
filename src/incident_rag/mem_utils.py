@@ -163,14 +163,9 @@ def trim_memory() -> float:
 
 
 def configure_runtime_memory_limits() -> None:
-    """Applies thread limits and optimization flags to torch and runtime."""
+    """Applies runtime optimizations to torch."""
     try:
         import torch
-        torch.set_num_threads(1)
-        try:
-            torch.set_num_interop_threads(1)
-        except Exception:
-            pass
         torch.set_grad_enabled(False)
     except ImportError:
         pass

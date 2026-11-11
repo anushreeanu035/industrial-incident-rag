@@ -7,7 +7,7 @@ import httpx
 
 
 def get_configured_backend_url() -> str:
-    """Dynamically resolves backend API URL from Streamlit secrets, session state, environment variables, or fallback."""
+    """Dynamically resolves backend API URL from session state, environment variables, or local default."""
     # 0. User runtime override in session state (e.g., from Settings page)
     try:
         import streamlit as st
@@ -18,7 +18,7 @@ def get_configured_backend_url() -> str:
     except Exception:
         pass
 
-    # 1. Streamlit Secrets (for Streamlit Community Cloud and local .streamlit/secrets.toml)
+    # 1. Streamlit Secrets (for local .streamlit/secrets.toml if present)
     try:
         import streamlit as st
         if hasattr(st, "secrets"):
@@ -30,20 +30,14 @@ def get_configured_backend_url() -> str:
     except Exception:
         pass
 
-    # 2. Environment Variables (.env, container env, system)
+    # 2. Environment Variables (.env or system)
     for key in ("BACKEND_URL", "backend_url", "API_URL", "api_url"):
         val = os.environ.get(key)
         if val and val.strip():
             return val.strip().rstrip("/")
 
-    # 3. Streamlit Cloud production fallback
-    if os.environ.get("STREAMLIT_SHARING_HOST") or os.environ.get("IS_STREAMLIT_CLOUD"):
-        return "https://incident-rag-backend.onrender.com"
-
-    # 4. Default fallback for local development
+    # 3. Default fallback for local development
     return "http://127.0.0.1:8000"
-
-
 DEFAULT_BACKEND_URL = get_configured_backend_url()
 
 
@@ -105,7 +99,7 @@ class APIClient:
                     pass
             self._client = httpx.Client(
                 base_url=target_url,
-                timeout=httpx.Timeout(connect=25.0, read=120.0, write=60.0, pool=25.0),
+                timeout=httpx.Timeout(connect=5.0, read=60.0, write=60.0, pool=5.0),
                 limits=httpx.Limits(max_keepalive_connections=20, max_connections=30, keepalive_expiry=60.0),
             )
             self._active_url = target_url
@@ -174,9 +168,8 @@ class APIClient:
                     continue
                 self._is_online = False
                 self._last_error = (
-                    f"Unable to connect to backend at {self.base_url} after {max_retries} attempts. "
-                    "If hosted on Render's Free Tier, the instance may be spinning up from sleep (30–50s). "
-                    "Verify BACKEND_URL in Streamlit Cloud Secrets."
+                    f"Unable to connect to local backend at {self.base_url} after {max_retries} attempts. "
+                    "Please ensure the local FastAPI server is running via: uvicorn incident_rag.api:app --reload"
                 )
                 raise ConnectionError(self._last_error) from e
 
@@ -227,8 +220,7 @@ class APIClient:
 
         start_t = time.perf_counter()
         try:
-            # 15s timeout with 2 retries to accommodate Render free-tier cold starts
-            data = self._get("/health", timeout=15.0, max_retries=2)
+            data = self._get("/health", timeout=5.0, max_retries=2)
             self._last_latency_ms = (time.perf_counter() - start_t) * 1000.0
             self._cache[cache_key] = data
             self._cache_timestamps[cache_key] = now

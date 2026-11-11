@@ -58,10 +58,10 @@ if not online:
         <div class="mismatch-banner" style="margin-bottom: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                 <div>
-                    <strong style="font-size: 14px;">⚠️ FastAPI Backend is Offline or Sleeping (Cold Start)</strong>
+                    <strong style="font-size: 14px;">⚠️ Local FastAPI Backend is Offline</strong>
                     <div style="font-size: 12.5px; margin-top: 4px;">
                         Target Host: <code>{base_url}</code><br/>
-                        On Render's Free Tier, services spin down after 15 minutes of inactivity and take 30–50s to complete cold start.
+                        Start your local FastAPI backend in a terminal: <code>uvicorn incident_rag.api:app --host 127.0.0.1 --port 8000 --reload</code>
                     </div>
                 </div>
             </div>
@@ -71,20 +71,20 @@ if not online:
     )
     col_wake, _ = st.columns([1, 3])
     with col_wake:
-        if st.button("🔄 Wake Up / Reconnect Backend", key="btn_wake_dash", type="primary", use_container_width=True):
+        if st.button("🔄 Reconnect Backend", key="btn_wake_dash", type="primary", use_container_width=True):
             api_client.clear_cache()
-            with st.spinner("Pinging FastAPI backend at " + base_url + "..."):
+            with st.spinner("Connecting to FastAPI backend at " + base_url + "..."):
                 try:
                     api_client.check_health(ttl=0.0)
-                    st.toast("Backend responded successfully!", icon="✅")
+                    st.toast("Backend connected successfully!", icon="✅")
                 except Exception as ex:
-                    st.toast(f"Connection attempt: {str(ex)[:80]}", icon="⏳")
+                    st.toast(f"Connection failed: {str(ex)[:80]}", icon="❌")
             st.rerun()
 else:
     st.markdown(
         f"""
         <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 7px 14px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; color: #166534;">
-            <span>🟢 <b>FastAPI Backend Connected:</b> <code>{base_url}</code> &bull; v{health.get('version', '1.0.0')} &bull; Env: <b>{health.get('environment', 'production').upper()}</b></span>
+            <span>🟢 <b>FastAPI Backend Connected:</b> <code>{base_url}</code> &bull; v{health.get('version', '1.0.0')} &bull; Env: <b>{health.get('environment', 'development').upper()}</b></span>
             <span>⚡ Health Latency: <b>{latency_ms:.1f} ms</b> &bull; RSS Memory: <b>{health.get('process_memory_mb', 0):.0f} MB</b></span>
         </div>
         """,
@@ -100,8 +100,8 @@ col1, col2, col3, col4 = st.columns(4)
 with col1:
     st.metric(
         label="System Status",
-        value="Operational" if online else "Sleeping / Offline",
-        delta=f"{latency_ms:.1f}ms latency" if online else "Connection Pending",
+        value="Operational" if online else "Offline",
+        delta=f"{latency_ms:.1f}ms latency" if online else "Backend Unreachable",
         delta_color="normal" if online else "inverse",
     )
 with col2:

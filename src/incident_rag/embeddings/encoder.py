@@ -117,9 +117,11 @@ class EmbeddingEncoder:
     def model(self, value):
         """Allows injecting a mock model for testing or overriding."""
         self._model = value
-        if value is not None:
-            with _SHARED_MODELS_LOCK:
+        with _SHARED_MODELS_LOCK:
+            if value is not None:
                 _SHARED_MODELS[self.model_name] = value
+            else:
+                _SHARED_MODELS.pop(self.model_name, None)
 
     def encode_documents(self, texts: List[str], batch_size: Optional[int] = None) -> List[List[float]]:
         """Encodes document chunks in small batches to strictly constrain peak memory.
@@ -131,8 +133,8 @@ class EmbeddingEncoder:
             return []
 
         settings = get_settings()
-        configured_batch = batch_size if batch_size is not None else getattr(settings, "EMBEDDING_BATCH_SIZE", 2)
-        effective_batch_size = max(1, min(configured_batch, 8))
+        configured_batch = batch_size if batch_size is not None else getattr(settings, "EMBEDDING_BATCH_SIZE", 32)
+        effective_batch_size = max(1, min(configured_batch, 128))
 
         with get_embedding_execution_lock():
             model = self._get_model()

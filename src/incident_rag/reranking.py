@@ -28,7 +28,7 @@ class CrossEncoderReranker:
     def __init__(self, model_name: Optional[str] = None, enabled: Optional[bool] = None):
         settings = get_settings()
         self.model_name = model_name or settings.RERANKER_MODEL
-        self._enabled = enabled if enabled is not None else getattr(settings, "ENABLE_RERANKER", False)
+        self._enabled = enabled if enabled is not None else getattr(settings, "ENABLE_RERANKER", True)
         self._model = None
         self._lock = threading.Lock()
         self._load_failed = False

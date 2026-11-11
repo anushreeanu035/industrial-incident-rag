@@ -79,7 +79,7 @@ def render_sidebar(current_page: Optional[str] = None):
         if not is_connected:
             col_reconn, _ = st.columns([1, 0.1])
             with col_reconn:
-                if st.button("🔄 Wake / Reconnect Backend", key="btn_sb_reconnect", use_container_width=True):
+                if st.button("🔄 Reconnect Backend", key="btn_sb_reconnect", use_container_width=True):
                     api_client.clear_cache("health")
                     st.rerun()
 

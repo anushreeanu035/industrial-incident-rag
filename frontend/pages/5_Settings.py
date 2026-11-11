@@ -46,8 +46,7 @@ except Exception as e:
     if not is_healthy:
         st.warning(
             f"⚠️ **FastAPI Backend is unreachable at `{api_client.base_url}`.**\n\n"
-            "If running on **Streamlit Community Cloud**, deploy your FastAPI backend to a cloud host "
-            "(e.g., Render) and add `BACKEND_URL = \"https://your-backend.onrender.com\"` to your Streamlit Cloud Secrets."
+            "Please ensure the local FastAPI backend is running via:\n`uvicorn incident_rag.api:app --host 127.0.0.1 --port 8000 --reload`"
         )
     else:
         st.error(f"Failed to fetch system settings from backend: {str(e)}")
@@ -108,8 +107,7 @@ with c4:
 with st.expander("🔗 Backend Service Connection Settings", expanded=not is_healthy):
     st.markdown(
         "<p style='font-size: 13px; color: #64748B; margin-bottom: 8px;'>"
-        "Switch or test your FastAPI backend deployment URL. By default, Streamlit Cloud reads "
-        "<code>BACKEND_URL</code> from Streamlit Secrets or Environment Variables."
+        "Configure or test your local FastAPI backend host. Default is <code>http://127.0.0.1:8000</code>."
         "</p>",
         unsafe_allow_html=True,
     )
@@ -118,7 +116,7 @@ with st.expander("🔗 Backend Service Connection Settings", expanded=not is_hea
         new_url_input = st.text_input(
             "Target FastAPI Backend Host:",
             value=api_client.base_url,
-            help="Render deployment URL (e.g. https://incident-rag-backend.onrender.com)",
+            help="Local FastAPI backend host (default: http://127.0.0.1:8000)",
             key="input_backend_url_settings",
         )
     with col_u2:
