@@ -144,6 +144,44 @@ def is_backend_healthy(host: str = "127.0.0.1", port: int = 8000, timeout: float
         return False
 
 
+def is_backend_current(host: str = "127.0.0.1", port: int = 8000) -> bool:
+    """Verifies that the running backend supports runtime configuration (/api/v1/system/configure)."""
+    url = f"http://{host}:{port}/api/v1/system/configure"
+    req = urllib.request.Request(
+        url,
+        data=b"{}",
+        headers={"Content-Type": "application/json", "User-Agent": "BackendVersionProbe"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=1.5) as resp:
+            return resp.status in (200, 422)
+    except urllib.error.HTTPError as e:
+        return e.code in (200, 422)
+    except Exception:
+        return False
+
+
+def terminate_stale_backend(port: int = 8000) -> None:
+    """Kills any stale process listening on the backend port."""
+    logger.warning(f"Terminating stale backend process on port {port}...")
+    try:
+        if sys.platform == "win32":
+            subprocess.run(
+                f"for /f \"tokens=5\" %a in ('netstat -aon ^| findstr :{port}') do taskkill /F /PID %a",
+                shell=True,
+                capture_output=True,
+                timeout=5,
+            )
+        else:
+            # Linux container environment (Streamlit Cloud)
+            subprocess.run(["pkill", "-9", "-f", "uvicorn.*incident_rag"], capture_output=True, timeout=5)
+            subprocess.run(["fuser", "-k", f"{port}/tcp"], capture_output=True, timeout=5)
+        time.sleep(1.0)
+    except Exception as ex:
+        logger.warning(f"Error terminating stale backend: {ex}")
+
+
 def get_python_executable() -> str:
     """Finds the active virtual environment Python executable, falling back to sys.executable."""
     project_root = Path(__file__).resolve().parent.parent.parent
@@ -197,12 +235,18 @@ def ensure_backend_running(host: str = "127.0.0.1", port: int = 8000) -> bool:
         logger.info(f"Using remote backend at {backend_url}. Skipping local process spawn.")
         return True
 
-    # 2. Check if local backend is already healthy
+    # 2. Check if local backend is already healthy and up to date
     if is_backend_healthy(host=host, port=port, timeout=1.0):
-        logger.info(f"FastAPI backend already healthy on http://{host}:{port}")
-        # Synchronize credentials to ensure running instance has active Groq credentials
-        sync_backend_config(host=host, port=port)
-        return True
+        if is_backend_current(host=host, port=port):
+            logger.info(f"FastAPI backend already healthy and current on http://{host}:{port}")
+            sync_backend_config(host=host, port=port)
+            return True
+        else:
+            logger.warning(
+                f"Outdated FastAPI backend detected on http://{host}:{port} (missing /api/v1/system/configure). "
+                f"Terminating stale process to launch updated version..."
+            )
+            terminate_stale_backend(port=port)
 
     # 3. Spawn local uvicorn subprocess
     logger.info(f"Starting FastAPI backend on http://{host}:{port} ...")
